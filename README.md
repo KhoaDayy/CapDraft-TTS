@@ -29,6 +29,12 @@
 
 ## Cài đặt
 
+### Bản Windows dựng sẵn
+
+Tải file `CapDraft-TTS-*-windows-x64.zip` trong mục [Releases](https://github.com/KhoaDayy/CapDraft-TTS/releases), giải nén và chạy `CapDraft-TTS.exe`.
+
+### Chạy từ source
+
 ```powershell
 git clone <repository-url>
 cd "CapDraft TTS"

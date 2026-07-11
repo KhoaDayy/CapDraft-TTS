@@ -5,9 +5,14 @@ from __future__ import annotations
 import copy
 import json
 import os
+import sys
 from pathlib import Path
 
-APP_ROOT = Path(__file__).resolve().parents[1]
+APP_ROOT = (
+    Path(sys.executable).resolve().parent
+    if getattr(sys, "frozen", False)
+    else Path(__file__).resolve().parents[1]
+)
 
 DEFAULT_CONFIG = {
     "ffprobe_path": "ffprobe",

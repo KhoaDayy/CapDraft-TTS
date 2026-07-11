@@ -23,6 +23,9 @@ screenshots/
 textReading/
 *.log
 *.part
+build/
+dist/
+release/
 
 # Local CapCut drafts and generated manifests
 draft_content.json
