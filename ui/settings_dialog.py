@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QTabWidget,
 )
 from qfluentwidgets import (
+    ComboBox,
     Dialog,
     DoubleSpinBox,
     FluentIcon,
@@ -29,6 +30,7 @@ from core.capcut_project.voice_catalog_updater import (
     update_voice_catalog_from_url,
 )
 from core.config import AppConfig
+from core.i18n import SUPPORTED_LANGUAGES, set_language, tr
 
 
 class SettingsDialog(Dialog):
@@ -37,38 +39,57 @@ class SettingsDialog(Dialog):
     settings_saved = Signal()
 
     def __init__(self, parent=None):
+        cfg = AppConfig()
+        set_language(cfg.language)
         super().__init__(
-            "Cài đặt",
-            "Tùy chỉnh đường dẫn, danh mục giọng đọc và hiệu năng TTS.",
+            tr("settings"),
+            tr("settings_description"),
             parent,
         )
-        self.cfg = AppConfig()
+        self.cfg = cfg
         self._build_ui()
-        self.yesButton.setText("Lưu cài đặt")
-        self.cancelButton.setText("Hủy")
+        self.yesButton.setText(tr("save_settings"))
+        self.cancelButton.setText(tr("cancel"))
         self.yesButton.clicked.disconnect()
         self.yesButton.clicked.connect(self._save)
         self.setMinimumWidth(680)
 
     def _build_ui(self):
         tabs = QTabWidget()
-        tabs.addTab(self._paths_tab(), "Đường dẫn")
-        tabs.addTab(self._voices_tab(), "Giọng đọc")
-        tabs.addTab(self._performance_tab(), "Hiệu năng")
+        tabs.addTab(self._appearance_tab(), tr("appearance"))
+        tabs.addTab(self._paths_tab(), tr("paths"))
+        tabs.addTab(self._voices_tab(), tr("voices"))
+        tabs.addTab(self._performance_tab(), tr("performance"))
         self.textLayout.addWidget(tabs)
+
+    def _appearance_tab(self):
+        page, form = self._form_page()
+        self.language_combo = ComboBox()
+        for code, label in SUPPORTED_LANGUAGES.items():
+            self.language_combo.addItem(label, userData=code)
+        self.language_combo.setCurrentIndex(max(0, self.language_combo.findData(self.cfg.language)))
+
+        self.theme_combo = ComboBox()
+        for mode, key in (("auto", "theme_auto"), ("light", "theme_light"), ("dark", "theme_dark")):
+            self.theme_combo.addItem(tr(key), userData=mode)
+        self.theme_combo.setCurrentIndex(max(0, self.theme_combo.findData(self.cfg.theme_mode)))
+
+        note = QLabel(tr("restart_language"))
+        note.setWordWrap(True)
+        form.addRow(tr("language"), self.language_combo)
+        form.addRow(tr("theme"), self.theme_combo)
+        form.addRow("", note)
+        return page
 
     def _paths_tab(self):
         page, form = self._form_page()
         self.capcut_tts_path = self._path_row("capcut_tts_path", directory=True)
         self.device_json_path = self._path_row("device_json_path", file_filter="JSON (*.json)")
-        self.ffmpeg_path = LineEdit()
-        self.ffmpeg_path.setText(str(self.cfg.get("ffmpeg_path", "ffmpeg")))
         self.ffprobe_path = LineEdit()
         self.ffprobe_path.setText(str(self.cfg.get("ffprobe_path", "ffprobe")))
         form.addRow("CapCut TTS API", self.capcut_tts_path.parentWidget())
         form.addRow("Thiết bị (device.json)", self.device_json_path.parentWidget())
-        form.addRow("FFmpeg", self.ffmpeg_path)
-        form.addRow("FFprobe", self.ffprobe_path)
+        form.addRow("FFprobe (optional)", self.ffprobe_path)
         return page
 
     def _voices_tab(self):
@@ -76,12 +97,12 @@ class SettingsDialog(Dialog):
         self.voice_catalog_url = LineEdit()
         self.voice_catalog_url.setText(self.cfg.voice_catalog_url)
         self.voice_catalog_url.setPlaceholderText(DEFAULT_VOICE_CATALOG_URL)
-        self.btn_update_voices = PushButton(FluentIcon.SYNC, "Tải lại danh sách")
+        self.btn_update_voices = PushButton(FluentIcon.SYNC, tr("reload_list"))
         self.btn_update_voices.setToolTip("Tải danh sách giọng từ URL (không lưu file local)")
         self.btn_update_voices.clicked.connect(self._update_voice_catalog)
         self.lbl_voice_update_status = QLabel("")
         self.lbl_voice_update_status.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        form.addRow("URL danh mục giọng", self.voice_catalog_url)
+        form.addRow(tr("voice_catalog_url"), self.voice_catalog_url)
         form.addRow("", self.btn_update_voices)
         form.addRow("", self.lbl_voice_update_status)
         return page
@@ -100,16 +121,16 @@ class SettingsDialog(Dialog):
         self.poll_interval = DoubleSpinBox()
         self.poll_interval.setRange(0.1, 10.0)
         self.poll_interval.setSingleStep(0.1)
-        self.poll_interval.setSuffix(" giây")
+        self.poll_interval.setSuffix(tr("seconds_suffix"))
         self.poll_interval.setValue(float(self.cfg.get("tts_poll_interval_sec", 1.0)))
         self.max_backups = SpinBox()
         self.max_backups.setRange(1, 100)
         self.max_backups.setValue(int(self.cfg.get("max_backups", 10)))
-        form.addRow("Caption mỗi lô", self.chunk_size)
-        form.addRow("Số lô song song", self.parallel_chunks)
-        form.addRow("Luồng tải audio", self.download_workers)
-        form.addRow("Chu kỳ kiểm tra", self.poll_interval)
-        form.addRow("Số bản sao lưu", self.max_backups)
+        form.addRow(tr("captions_per_batch"), self.chunk_size)
+        form.addRow(tr("parallel_batches"), self.parallel_chunks)
+        form.addRow(tr("audio_workers"), self.download_workers)
+        form.addRow(tr("poll_interval"), self.poll_interval)
+        form.addRow(tr("backup_count"), self.max_backups)
         return page
 
     @staticmethod
@@ -131,14 +152,14 @@ class SettingsDialog(Dialog):
         row.setContentsMargins(0, 0, 0, 0)
         edit = LineEdit()
         edit.setText(str(self.cfg.get(key, "")))
-        button = PushButton(FluentIcon.FOLDER, "Chọn")
+        button = PushButton(FluentIcon.FOLDER, tr("choose"))
 
         def browse():
             current = edit.text() or str(Path.home())
             path = (
-                QFileDialog.getExistingDirectory(self, "Chọn thư mục", current)
+                QFileDialog.getExistingDirectory(self, tr("choose_folder"), current)
                 if directory
-                else QFileDialog.getOpenFileName(self, "Chọn tệp", current, file_filter)[0]
+                else QFileDialog.getOpenFileName(self, tr("choose_file"), current, file_filter)[0]
             )
             if path:
                 edit.setText(path)
@@ -154,13 +175,14 @@ class SettingsDialog(Dialog):
             "capcut_tts_path": self.capcut_tts_path.text().strip(),
             "device_json_path": self.device_json_path.text().strip(),
             "voice_catalog_url": self.voice_catalog_url.text().strip() or DEFAULT_VOICE_CATALOG_URL,
-            "ffmpeg_path": self.ffmpeg_path.text().strip() or "ffmpeg",
             "ffprobe_path": self.ffprobe_path.text().strip() or "ffprobe",
             "tts_chunk_size": self.chunk_size.value(),
             "tts_parallel_chunks": self.parallel_chunks.value(),
             "tts_download_workers": self.download_workers.value(),
             "tts_poll_interval_sec": self.poll_interval.value(),
             "max_backups": self.max_backups.value(),
+            "language": self.language_combo.currentData() or "vi",
+            "theme_mode": self.theme_combo.currentData() or "auto",
         }
 
     def _save(self):

@@ -1,6 +1,5 @@
 {
   "ffprobe_path": "ffprobe",
-  "ffmpeg_path": "ffmpeg",
   "capcut_tts_path": "external/capcut-tts-api",
   "device_json_path": "external/capcut-tts-api/device.json",
   "voice_catalog_url": "https://raw.githubusercontent.com/KhoaDayy/CapDraft-TTS/refs/heads/main/Voice.json",
@@ -14,5 +13,7 @@
   "tts_download_workers": 8,
   "cache_path": "cache",
   "project_output_path": "projects",
-  "max_backups": 10
+  "max_backups": 10,
+  "language": "vi",
+  "theme_mode": "auto"
 }

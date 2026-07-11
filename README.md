@@ -56,13 +56,14 @@ CapCut already has many TTS voices. CapDraft TTS lets you use them on your capti
 - Optional audio cache and native CapCut head-alignment
 - Parallel generation, cancel, progress log
 - Backup + atomic save with rollback on failed write
-- Fluent dark-mode UI (Vietnamese UI text)
+- Vietnamese, English, Chinese, and Japanese UI
+- Follow Windows, light, or dark theme with Windows Blue accent
 
 ## Requirements
 
 - Windows 10/11
 - CapCut Desktop + a project that already has captions
-- FFmpeg / FFprobe (`ffmpeg` / `ffprobe` on `PATH`, or set paths in Settings)
+- FFprobe is optional and only used as a fallback for reading cached audio duration
 - Internet connection
 
 Source runs also need Python 3.10+.
@@ -73,7 +74,7 @@ Source runs also need Python 3.10+.
 
 1. Download `CapDraft-TTS-v1.0.2-windows-x64.zip` from [Releases](https://github.com/KhoaDayy/CapDraft-TTS/releases)
 2. Unzip and run `CapDraft-TTS.exe`
-3. If FFmpeg / FFprobe is not on `PATH`, set its location in **Settings**.
+3. Choose a CapCut project and start working; normal use does not require editing `config.json`.
 
 ```powershell
 Get-FileHash .\CapDraft-TTS-v1.0.2-windows-x64.zip -Algorithm SHA256

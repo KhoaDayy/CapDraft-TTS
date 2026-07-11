@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.0 — 2026-07-11
+
+### Tính năng
+
+- Giao diện hỗ trợ Tiếng Việt, English, 中文 và 日本語.
+- Thêm chủ đề Theo Windows, Sáng và Tối; mặc định theo giao diện hệ thống.
+- Đổi màu nhấn sang Windows Blue (`#0078D4`).
+- Đưa lựa chọn ngôn ngữ và giao diện vào Settings, không cần sửa `config.json`.
+
+### Dọn dẹp
+
+- Bỏ cấu hình FFmpeg không được sử dụng; chỉ giữ FFprobe tùy chọn để đọc thời lượng audio cache khi thiếu metadata.
+
 ## 1.0.2 — 2026-07-11
 
 ### Tính năng

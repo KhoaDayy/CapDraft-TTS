@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-__version__ = "1.0.2"
+__version__ = "1.1.0"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 

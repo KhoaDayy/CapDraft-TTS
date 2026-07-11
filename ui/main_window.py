@@ -63,6 +63,7 @@ from core.capcut_project.models import (  # noqa: E402
 from core.capcut_project.native_audio_alignment import NativeAudioAlignmentSettings  # noqa: E402
 from core.capcut_project.tts_project_service import CapCutProjectTtsService  # noqa: E402
 from core.config import AppConfig  # noqa: E402
+from core.i18n import set_language, tr  # noqa: E402
 from core.logger import logger  # noqa: E402
 from ui.settings_dialog import SettingsDialog  # noqa: E402
 
@@ -158,8 +159,10 @@ class GenerateWorker(QThread):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.config = AppConfig()
+        set_language(self.config.language)
         self._apply_theme()
-        self.setWindowTitle("CapDraft TTS — Tạo TTS cho project CapCut")
+        self.setWindowTitle(tr("window_title"))
         self.setMinimumSize(1024, 720)
         self.resize(1280, 860)
         self.service = CapCutProjectTtsService()
@@ -177,8 +180,9 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _apply_theme():
-        setTheme(Theme.DARK)
-        setThemeColor("#0EA5A4")
+        mode = AppConfig().theme_mode
+        setTheme({"light": Theme.LIGHT, "dark": Theme.DARK}.get(mode, Theme.AUTO))
+        setThemeColor("#0078D4")
 
     # ------------------------------------------------------------------
     # UI builders
@@ -205,24 +209,24 @@ class MainWindow(QMainWindow):
         return lbl
 
     def _build_project_bar(self) -> QWidget:
-        box = QGroupBox("Project CapCut")
+        box = QGroupBox(tr("capcut_project"))
         row = QHBoxLayout(box)
         row.setContentsMargins(10, 8, 10, 8)
         row.setSpacing(8)
 
         self.ed_project = LineEdit()
-        self.ed_project.setPlaceholderText("Chọn thư mục project hoặc draft_content.json…")
+        self.ed_project.setPlaceholderText(tr("project_placeholder"))
         self.ed_project.setReadOnly(True)
         self.ed_project.setClearButtonEnabled(False)
         self.ed_project.setMinimumWidth(280)
 
-        self.btn_browse = PushButton(FluentIcon.FOLDER, "Chọn project")
+        self.btn_browse = PushButton(FluentIcon.FOLDER, tr("choose_project"))
         self.btn_browse.setToolTip("Chọn draft_content.json hoặc thư mục project CapCut")
 
         self.btn_reload = ToolButton(FluentIcon.SYNC)
-        self.btn_reload.setToolTip("Tải lại project")
+        self.btn_reload.setToolTip(tr("reload_project"))
 
-        self.btn_export_srt = PushButton("Xuất SRT")
+        self.btn_export_srt = PushButton(tr("export_srt"))
         self.btn_export_srt.setToolTip("Xuất toàn bộ caption trong project thành file phụ đề .srt")
 
         row.addWidget(self.ed_project, 1)
@@ -230,7 +234,7 @@ class MainWindow(QMainWindow):
         row.addWidget(self.btn_reload)
         row.addWidget(self.btn_export_srt)
 
-        self.lbl_info = self._muted_label("Chưa chọn project")
+        self.lbl_info = self._muted_label(tr("no_project"))
         self.lbl_info.setWordWrap(True)
         self.lbl_info.setTextInteractionFlags(Qt.TextSelectableByMouse)
         font = self.lbl_info.font()
@@ -239,7 +243,7 @@ class MainWindow(QMainWindow):
         return box
 
     def _build_voice_settings(self) -> QWidget:
-        box = QGroupBox("Cài đặt giọng đọc")
+        box = QGroupBox(tr("voice_settings"))
         grid = QGridLayout(box)
         grid.setContentsMargins(10, 8, 10, 8)
         grid.setHorizontalSpacing(12)
@@ -255,7 +259,7 @@ class MainWindow(QMainWindow):
         self.cmb_voice.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         self.ed_voice_search = LineEdit()
-        self.ed_voice_search.setPlaceholderText("Tìm giọng…")
+        self.ed_voice_search.setPlaceholderText(tr("search_voice"))
         self.ed_voice_search.setMaximumWidth(180)
 
         voice_row = QHBoxLayout()
@@ -299,23 +303,23 @@ class MainWindow(QMainWindow):
         )
 
         self.cmb_existing = ComboBox()
-        self.cmb_existing.addItem("Thay thế TTS cũ", userData="replace_existing")
-        self.cmb_existing.addItem("Bỏ qua caption đã có TTS", userData="skip_existing")
+        self.cmb_existing.addItem(tr("replace_tts"), userData="replace_existing")
+        self.cmb_existing.addItem(tr("skip_existing_tts"), userData="skip_existing")
 
         # Row 0: language | voice
-        grid.addWidget(QLabel("Ngôn ngữ"), 0, 0)
+        grid.addWidget(QLabel(tr("language_label")), 0, 0)
         grid.addWidget(self.cmb_lang, 0, 1)
-        grid.addWidget(QLabel("Giọng đọc"), 0, 2)
+        grid.addWidget(QLabel(tr("voice_label")), 0, 2)
         grid.addLayout(voice_row, 0, 3)
         # Row 1: voice metadata under voice selector
         grid.addWidget(self.lbl_voice_adv, 1, 3)
         # Row 2: clip speed | tone
-        grid.addWidget(QLabel("Tốc độ giọng đọc"), 2, 0)
+        grid.addWidget(QLabel(tr("voice_speed")), 2, 0)
         grid.addWidget(self.sp_clip_speed, 2, 1)
-        grid.addWidget(QLabel("Cao độ"), 2, 2)
+        grid.addWidget(QLabel(tr("pitch")), 2, 2)
         grid.addWidget(self.cmb_tone, 2, 3)
         # Row 3: existing TTS
-        grid.addWidget(QLabel("TTS đã tồn tại"), 3, 0)
+        grid.addWidget(QLabel(tr("existing_tts")), 3, 0)
         grid.addWidget(self.cmb_existing, 3, 1)
         return box
 
@@ -327,7 +331,7 @@ class MainWindow(QMainWindow):
 
         toggle_row = QHBoxLayout()
         toggle_row.setContentsMargins(2, 0, 2, 0)
-        self.btn_advanced = PushButton(FluentIcon.CHEVRON_RIGHT_MED, "Tùy chọn nâng cao")
+        self.btn_advanced = PushButton(FluentIcon.CHEVRON_RIGHT_MED, tr("advanced_options"))
         self.btn_advanced.setToolTip("Hiện/ẩn cache và căn chỉnh native")
         self.btn_advanced.setCursor(Qt.PointingHandCursor)
         toggle_row.addWidget(self.btn_advanced)
@@ -340,9 +344,9 @@ class MainWindow(QMainWindow):
         adv.setHorizontalSpacing(12)
         adv.setVerticalSpacing(6)
 
-        self.chk_cache = CheckBox("Dùng cache TTS")
+        self.chk_cache = CheckBox(tr("use_cache"))
         self.chk_cache.setChecked(True)
-        self.chk_align = CheckBox("Chống lệch đầu TTS (native CapCut)")
+        self.chk_align = CheckBox(tr("align_tts"))
         self.chk_align.setChecked(True)
         self.chk_align.setToolTip(
             "Trim/fade bằng source_timerange, không re-encode MP3."
@@ -367,9 +371,9 @@ class MainWindow(QMainWindow):
 
         adv.addWidget(self.chk_cache, 0, 0, 1, 2)
         adv.addWidget(self.chk_align, 0, 2, 1, 2)
-        adv.addWidget(QLabel("Cắt đầu"), 1, 0)
+        adv.addWidget(QLabel(tr("trim_start")), 1, 0)
         adv.addWidget(self.sp_trim_frames, 1, 1)
-        adv.addWidget(QLabel("Fade-in"), 1, 2)
+        adv.addWidget(QLabel(tr("fade_in")), 1, 2)
         adv.addWidget(self.sp_fade_ms, 1, 3)
         adv.addWidget(self.lbl_align_hint, 2, 0, 1, 4)
 
@@ -401,16 +405,16 @@ class MainWindow(QMainWindow):
             self.ed_search = _SearchLineEdit()
         else:
             self.ed_search = LineEdit()
-        self.ed_search.setPlaceholderText("Tìm trong nội dung caption…")
+        self.ed_search.setPlaceholderText(tr("search_caption"))
         self.ed_search.setClearButtonEnabled(True)
         self.ed_search.setMinimumWidth(180)
 
-        self.btn_select_all = PushButton("Chọn tất cả")
-        self.btn_deselect_all = PushButton("Bỏ chọn")
-        self.chk_hide_empty = CheckBox("Ẩn dòng rỗng")
+        self.btn_select_all = PushButton(tr("select_all"))
+        self.btn_deselect_all = PushButton(tr("deselect_all"))
+        self.chk_hide_empty = CheckBox(tr("hide_empty"))
         self.chk_hide_empty.setChecked(True)
-        self.chk_only_no_tts = CheckBox("Chưa có TTS")
-        self.chk_only_errors = CheckBox("Chỉ lỗi")
+        self.chk_only_no_tts = CheckBox(tr("without_tts"))
+        self.chk_only_errors = CheckBox(tr("only_errors"))
 
         tools.addWidget(self.ed_search, 1)
         tools.addWidget(self.btn_select_all)
@@ -420,7 +424,7 @@ class MainWindow(QMainWindow):
         tools.addWidget(self.chk_only_errors)
         cap_l.addLayout(tools)
 
-        self.lbl_selection = self._muted_label("Đã chọn 0/0 · Hiển thị 0")
+        self.lbl_selection = self._muted_label(tr("selection", selected=0, total=0, visible=0))
         sf = self.lbl_selection.font()
         sf.setPointSize(max(9, sf.pointSize() - 1))
         self.lbl_selection.setFont(sf)
@@ -428,7 +432,7 @@ class MainWindow(QMainWindow):
 
         self.table = QTableWidget(0, 9)
         self.table.setHorizontalHeaderLabels(
-            ["", "#", "Bắt đầu", "Kết thúc", "Nội dung", "Đã có TTS", "Trạng thái", "Thời lượng", "Lỗi"]
+            ["", "#", tr("table_start"), tr("table_end"), tr("table_content"), tr("table_has_tts"), tr("table_status"), tr("table_duration"), tr("table_error")]
         )
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
@@ -463,11 +467,11 @@ class MainWindow(QMainWindow):
 
         log_tools = QHBoxLayout()
         self.btn_log_clear = ToolButton(FluentIcon.DELETE)
-        self.btn_log_clear.setToolTip("Xóa nhật ký")
+        self.btn_log_clear.setToolTip(tr("clear_log"))
         self.btn_log_copy = ToolButton(FluentIcon.COPY)
-        self.btn_log_copy.setToolTip("Sao chép nhật ký")
+        self.btn_log_copy.setToolTip(tr("copy_log"))
         self.btn_log_save = ToolButton(FluentIcon.SAVE)
-        self.btn_log_save.setToolTip("Lưu nhật ký ra file")
+        self.btn_log_save.setToolTip(tr("save_log"))
         log_tools.addStretch(1)
         log_tools.addWidget(self.btn_log_clear)
         log_tools.addWidget(self.btn_log_copy)
@@ -489,20 +493,20 @@ class MainWindow(QMainWindow):
         self.progress = ProgressBar()
         self.progress.setRange(0, 1000)
         self.progress.setValue(0)
-        self.lbl_progress = QLabel("Sẵn sàng")
+        self.lbl_progress = QLabel(tr("ready"))
         self.lbl_progress.setMinimumWidth(140)
         self.lbl_progress.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-        self.btn_cancel = PushButton("Hủy")
+        self.btn_cancel = PushButton(tr("cancel"))
         self.btn_cancel.setEnabled(False)
         _gen_icon = getattr(FluentIcon, "PLAY", None) or getattr(FluentIcon, "ACCEPT", None)
         self.btn_generate = (
-            PrimaryPushButton(_gen_icon, "Tạo và gắn TTS")
+            PrimaryPushButton(_gen_icon, tr("generate_attach"))
             if _gen_icon is not None
-            else PrimaryPushButton("Tạo và gắn TTS")
+            else PrimaryPushButton(tr("generate_attach"))
         )
         self.btn_generate.setEnabled(False)
         self.btn_settings = ToolButton(FluentIcon.SETTING)
-        self.btn_settings.setToolTip("Cài đặt ứng dụng")
+        self.btn_settings.setToolTip(tr("app_settings"))
         foot.addWidget(self.btn_settings)
         foot.addWidget(self.progress, 1)
         foot.addWidget(self.lbl_progress)
@@ -538,8 +542,12 @@ class MainWindow(QMainWindow):
 
     def _open_settings(self):
         dialog = SettingsDialog(self)
-        dialog.settings_saved.connect(self._load_voices)
+        dialog.settings_saved.connect(self._on_settings_saved)
         dialog.exec()
+
+    def _on_settings_saved(self):
+        self._apply_theme()
+        self._load_voices()
 
     # ------------------------------------------------------------------
     # UI state
@@ -551,34 +559,34 @@ class MainWindow(QMainWindow):
 
         if state == UiState.IDLE_NO_PROJECT:
             self.btn_generate.setEnabled(False)
-            self.btn_generate.setText("Tạo và gắn TTS")
+            self.btn_generate.setText(tr("generate_attach"))
             self.btn_cancel.setEnabled(False)
-            self.btn_cancel.setText("Hủy")
+            self.btn_cancel.setText(tr("cancel"))
             self.btn_reload.setEnabled(bool(self.ed_project.text().strip()))
             self.btn_export_srt.setEnabled(False)
             self.btn_browse.setEnabled(True)
-            self.lbl_progress.setText("Sẵn sàng")
+            self.lbl_progress.setText(tr("ready"))
         elif state == UiState.IDLE_READY:
             self.btn_generate.setEnabled(True)
-            self.btn_generate.setText("Tạo và gắn TTS")
+            self.btn_generate.setText(tr("generate_attach"))
             self.btn_cancel.setEnabled(False)
-            self.btn_cancel.setText("Hủy")
+            self.btn_cancel.setText(tr("cancel"))
             self.btn_reload.setEnabled(True)
             self.btn_export_srt.setEnabled(True)
             self.btn_browse.setEnabled(True)
         elif state == UiState.GENERATING:
             self.btn_generate.setEnabled(False)
-            self.btn_generate.setText("Đang tạo…")
+            self.btn_generate.setText(tr("generating"))
             self.btn_cancel.setEnabled(True)
-            self.btn_cancel.setText("Hủy")
+            self.btn_cancel.setText(tr("cancel"))
             self.btn_reload.setEnabled(False)
             self.btn_export_srt.setEnabled(False)
             self.btn_browse.setEnabled(False)
         elif state == UiState.CANCELLING:
             self.btn_generate.setEnabled(False)
-            self.btn_generate.setText("Đang hủy…")
+            self.btn_generate.setText(tr("cancelling"))
             self.btn_cancel.setEnabled(False)
-            self.btn_cancel.setText("Hủy")
+            self.btn_cancel.setText(tr("cancel"))
             self.btn_reload.setEnabled(False)
             self.btn_export_srt.setEnabled(False)
             self.btn_browse.setEnabled(False)
@@ -666,7 +674,7 @@ class MainWindow(QMainWindow):
             self.lbl_table_empty.setText("Chưa có caption — chọn project để bắt đầu.")
             self.lbl_table_empty.setVisible(True)
         elif visible == 0:
-            self.lbl_table_empty.setText("Không có caption khớp bộ lọc hiện tại.")
+            self.lbl_table_empty.setText(tr("empty_filter"))
             self.lbl_table_empty.setVisible(True)
         else:
             self.lbl_table_empty.setVisible(False)
@@ -684,7 +692,7 @@ class MainWindow(QMainWindow):
             return
         self.cmb_lang.blockSignals(True)
         self.cmb_lang.clear()
-        self.cmb_lang.addItem("Tất cả", userData="")
+        self.cmb_lang.addItem(tr("all"), userData="")
         for lan, locale in cat.languages():
             label = locale or lan or "?"
             self.cmb_lang.addItem(label, userData=lan or locale)
@@ -842,14 +850,14 @@ class MainWindow(QMainWindow):
             text_item = QTableWidgetItem(cap.text.replace("\n", " "))
             self.table.setItem(row, 4, text_item)
             self.table.setItem(
-                row, 5, QTableWidgetItem("Có" if cap.has_existing_tts else "Không")
+                row, 5, QTableWidgetItem(tr("yes") if cap.has_existing_tts else tr("no"))
             )
             if cap.is_empty:
-                status = "Rỗng"
+                status = tr("empty")
             elif cap.has_existing_tts:
-                status = "Đã có TTS"
+                status = tr("has_tts")
             else:
-                status = "Sẵn sàng"
+                status = tr("ready")
             self.table.setItem(row, 6, QTableWidgetItem(status))
             self.table.setItem(row, 7, QTableWidgetItem(""))
             self.table.setItem(row, 8, QTableWidgetItem(""))
@@ -865,10 +873,10 @@ class MainWindow(QMainWindow):
         for row in range(self.table.rowCount()):
             text = self.table.item(row, 4).text().lower()
             existing_txt = self.table.item(row, 5).text()
-            existing = existing_txt in {"Yes", "Có"}
+            existing = existing_txt in {"Yes", "Có", tr("yes")}
             status = self.table.item(row, 6).text()
-            empty = status in {"Empty", "Rỗng"}
-            is_error = status in {"Failed", "Lỗi", "Thất bại"} or bool(
+            empty = status in {"Empty", "Rỗng", tr("empty")}
+            is_error = status in {"Failed", "Lỗi", "Thất bại", tr("error")} or bool(
                 (self.table.item(row, 8).text() or "").strip()
             )
             hide = False
@@ -894,7 +902,7 @@ class MainWindow(QMainWindow):
             item = self.table.item(row, 0)
             if item and item.checkState() == Qt.Checked:
                 selected += 1
-        self.lbl_selection.setText(f"Đã chọn {selected}/{total} · Hiển thị {visible}")
+        self.lbl_selection.setText(tr("selection", selected=selected, total=total, visible=visible))
 
     def _select_all(self, on: bool):
         self.table.blockSignals(True)
@@ -902,7 +910,7 @@ class MainWindow(QMainWindow):
             if self.table.isRowHidden(row):
                 continue
             status = self.table.item(row, 6).text()
-            if on and status in {"Empty", "Rỗng"}:
+            if on and status in {"Empty", "Rỗng", tr("empty")}:
                 continue
             self.table.item(row, 0).setCheckState(Qt.Checked if on else Qt.Unchecked)
         self.table.blockSignals(False)

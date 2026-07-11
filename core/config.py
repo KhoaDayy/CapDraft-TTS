@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 
 from core.capcut_project.voice_catalog import DEFAULT_VOICE_CATALOG_URL
+from core.i18n import normalize_language
+from core.preferences import normalize_theme_mode
 
 APP_ROOT = (
     Path(sys.executable).resolve().parent
@@ -18,7 +20,6 @@ APP_ROOT = (
 
 DEFAULT_CONFIG = {
     "ffprobe_path": "ffprobe",
-    "ffmpeg_path": "ffmpeg",
     "capcut_tts_path": "external/capcut-tts-api",
     "device_json_path": "external/capcut-tts-api/device.json",
     "voice_catalog_url": DEFAULT_VOICE_CATALOG_URL,
@@ -33,6 +34,8 @@ DEFAULT_CONFIG = {
     "cache_path": "cache",
     "project_output_path": "projects",
     "max_backups": 10,
+    "language": "vi",
+    "theme_mode": "auto",
 }
 
 
@@ -62,6 +65,7 @@ class AppConfig:
 
     def _normalize_legacy_keys(self):
         # Prefer explicit URL; fall back to old update-url key; drop local path.
+        self._data.pop("ffmpeg_path", None)
         legacy_url = self._data.pop("voice_catalog_update_url", None)
         self._data.pop("voice_catalog_path", None)
         if not str(self._data.get("voice_catalog_url") or "").strip() and legacy_url:
@@ -142,3 +146,11 @@ class AppConfig:
     @property
     def voice_catalog_url(self) -> str:
         return str(self.get("voice_catalog_url") or DEFAULT_VOICE_CATALOG_URL).strip()
+
+    @property
+    def language(self) -> str:
+        return normalize_language(self.get("language", "vi"))
+
+    @property
+    def theme_mode(self) -> str:
+        return normalize_theme_mode(self.get("theme_mode", "auto"))

@@ -18,7 +18,9 @@ class TestSettingsDialog(unittest.TestCase):
     def test_dialog_builds_all_sections(self):
         dialog = SettingsDialog()
         self.assertTrue(dialog.capcut_tts_path.text())
-        self.assertEqual(dialog.findChild(QTabWidget).count(), 3)
+        self.assertEqual(dialog.findChild(QTabWidget).count(), 4)
+        self.assertEqual(dialog.language_combo.count(), 4)
+        self.assertEqual(dialog.theme_combo.count(), 3)
         self.assertIn("githubusercontent.com", dialog.voice_catalog_url.text())
         self.assertGreaterEqual(dialog.chunk_size.value(), 1)
         dialog.close()

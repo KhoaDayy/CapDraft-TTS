@@ -622,6 +622,11 @@ class TestWorkbenchUi(unittest.TestCase):
         ):
             self.assertTrue(hasattr(self.win, name), f"missing widget attr: {name}")
 
+    def test_uses_windows_blue_accent(self):
+        from qfluentwidgets import qconfig
+
+        self.assertEqual(qconfig.themeColor.value.name().lower(), "#0078d4")
+
     def test_advanced_collapsed_by_default_frees_height(self):
         # isVisible() is False while window is hidden; isHidden tracks setVisible
         self.assertTrue(self.win.advanced_content.isHidden())
