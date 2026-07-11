@@ -66,18 +66,18 @@ CapCut already has many TTS voices. CapDraft TTS lets you use them on your capti
 - FFprobe is optional and only used as a fallback for reading cached audio duration
 - Internet connection
 
-Source runs also need Python 3.10+.
+Source development needs [`uv`](https://docs.astral.sh/uv/); it installs the matching Python environment and locked dependencies automatically.
 
 ## Install
 
 ### Prebuilt (recommended)
 
-1. Download `CapDraft-TTS-v1.0.2-windows-x64.zip` from [Releases](https://github.com/KhoaDayy/CapDraft-TTS/releases)
+1. Download `CapDraft-TTS-v1.1.1-windows-x64.zip` from [Releases](https://github.com/KhoaDayy/CapDraft-TTS/releases)
 2. Unzip and run `CapDraft-TTS.exe`
 3. Choose a CapCut project and start working; normal use does not require editing `config.json`.
 
 ```powershell
-Get-FileHash .\CapDraft-TTS-v1.0.2-windows-x64.zip -Algorithm SHA256
+Get-FileHash .\CapDraft-TTS-v1.1.1-windows-x64.zip -Algorithm SHA256
 # compare with the .sha256 file from the release
 ```
 
@@ -86,11 +86,9 @@ Get-FileHash .\CapDraft-TTS-v1.0.2-windows-x64.zip -Algorithm SHA256
 ```powershell
 git clone https://github.com/KhoaDayy/CapDraft-TTS.git
 cd CapDraft-TTS
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
+uv sync --group dev
 Copy-Item config.example.json config.json
-python main.py
+uv run python main.py
 ```
 
 ## Usage
@@ -109,8 +107,8 @@ python main.py
 ## Development
 
 ```powershell
-python -m unittest discover -s tests -v
-.\build-release.ps1 -Version 1.0.2
+uv run python -m unittest discover -s tests -v
+.\build-release.ps1 -Version 1.1.1
 ```
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CHANGELOG.md`](CHANGELOG.md).

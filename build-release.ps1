@@ -1,12 +1,17 @@
 param(
-    [string]$Version = "1.0.1"
+    [string]$Version = "1.1.1"
 )
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $Root
 
-python -m PyInstaller --noconfirm --clean CapDraft-TTS.spec
+if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+    throw "uv is required. Install it from https://docs.astral.sh/uv/"
+}
+
+uv sync --frozen --group dev
+uv run --frozen pyinstaller --noconfirm --clean CapDraft-TTS.spec
 
 $ReleaseDir = Join-Path $Root "release"
 New-Item -ItemType Directory -Force $ReleaseDir | Out-Null

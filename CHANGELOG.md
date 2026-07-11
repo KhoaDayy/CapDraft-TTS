@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.1 — 2026-07-11
+
+### Build
+
+- Dùng `uv` để tạo `.venv`, cài dependency và chạy toàn bộ test/build.
+- Thêm `pyproject.toml` và `uv.lock` để môi trường build có thể tái tạo chính xác.
+- Script release tự chạy `uv sync --frozen` và `uv run pyinstaller`, không còn phụ thuộc Python global.
+
 ## 1.1.0 — 2026-07-11
 
 ### Tính năng

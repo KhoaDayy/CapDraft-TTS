@@ -5,9 +5,9 @@ Cảm ơn bạn muốn cải thiện dự án. Hãy giữ thay đổi nhỏ, có
 ## Quy trình
 
 1. Fork repository và tạo branch từ nhánh mặc định.
-2. Tạo virtual environment, cài `requirements.txt`.
+2. Chạy `uv sync --group dev` để tạo `.venv` và cài dependency từ `uv.lock`.
 3. Thực hiện thay đổi và bổ sung test cho hành vi mới.
-4. Chạy `python -m unittest discover -s tests -v`.
+4. Chạy `uv run python -m unittest discover -s tests -v`.
 5. Mở pull request, mô tả vấn đề, giải pháp và cách đã kiểm tra.
 
 ## Quy ước commit
