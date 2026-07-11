@@ -32,6 +32,7 @@ from .models import (
 from .native_audio_alignment import NativeAudioAlignmentSettings
 from .paths import ensure_draftpath_placeholder
 from .project_exporter import ProjectExporter
+from .srt_exporter import export_captions_srt
 from .validator import DraftValidator
 from .voice_catalog import VoiceCatalog
 from .voice_catalog_updater import VoiceCatalogUpdateResult, update_voice_catalog_from_url
@@ -156,6 +157,13 @@ class CapCutProjectTtsService:
 
     def get_captions(self) -> list[CaptionRow]:
         return self.reader.get_captions()
+
+    def export_srt(self, output_path: Path | str) -> int:
+        if self.reader.draft_path is None:
+            raise RuntimeError("No project loaded. Call load_project() first.")
+        count = export_captions_srt(self.reader.get_captions(), output_path)
+        self.emit_log("SUCCESS", f"Exported {count} captions to {output_path}", stage="SRT")
+        return count
 
     def get_voices(self) -> list:
         return self.get_voice_catalog().voices

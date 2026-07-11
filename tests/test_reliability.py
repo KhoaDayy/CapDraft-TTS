@@ -615,6 +615,7 @@ class TestWorkbenchUi(unittest.TestCase):
             "lbl_progress",
             "btn_cancel",
             "btn_generate",
+            "btn_export_srt",
             "advanced_content",
             "btn_advanced",
             "main_split",
@@ -707,6 +708,7 @@ class TestWorkbenchUi(unittest.TestCase):
         self.win._apply_ui_state(UiState.IDLE_NO_PROJECT)
         self.assertFalse(self.win.btn_generate.isEnabled())
         self.assertFalse(self.win.btn_reload.isEnabled())
+        self.assertFalse(self.win.btn_export_srt.isEnabled())
         self.assertFalse(self.win.btn_cancel.isEnabled())
 
     def test_ready_enables_generate(self):
@@ -716,6 +718,7 @@ class TestWorkbenchUi(unittest.TestCase):
         self.win._apply_ui_state(UiState.IDLE_READY)
         self.assertTrue(self.win.btn_generate.isEnabled())
         self.assertTrue(self.win.btn_reload.isEnabled())
+        self.assertTrue(self.win.btn_export_srt.isEnabled())
         self.assertFalse(self.win.btn_cancel.isEnabled())
 
     def test_generating_disables_settings_and_selection(self):
@@ -735,6 +738,7 @@ class TestWorkbenchUi(unittest.TestCase):
         self.win._apply_ui_state(UiState.GENERATING)
         self.assertFalse(self.win.btn_browse.isEnabled())
         self.assertFalse(self.win.btn_reload.isEnabled())
+        self.assertFalse(self.win.btn_export_srt.isEnabled())
         self.assertFalse(self.win.cmb_voice.isEnabled())
         self.assertFalse(self.win.ed_search.isEnabled())
         self.assertFalse(self.win.btn_select_all.isEnabled())

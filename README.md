@@ -41,6 +41,7 @@ CapCut already has many TTS voices. CapDraft TTS lets you use them on your capti
 - **120+ CapCut voices** (live catalog from GitHub)
 - **No TTS fee** — uses CapCut's own TTS path via a local CapCut TTS API + your `device.json`
 - Reads captions from your CapCut project and writes audio back into the same timeline
+- Exports project captions directly to a standard `.srt` subtitle file
 - No project copy, no manual drag-and-drop of audio files
 
 > You still need CapCut Desktop, a working CapCut TTS API setup, and internet. “Free” means no extra paid voice API (ElevenLabs, Azure, etc.).
@@ -71,7 +72,7 @@ Source runs also need Python 3.10+.
 
 ### Prebuilt (recommended)
 
-1. Download `CapDraft-TTS-v1.0.1-windows-x64.zip` from [Releases](https://github.com/KhoaDayy/CapDraft-TTS/releases)
+1. Download `CapDraft-TTS-v1.0.2-windows-x64.zip` from [Releases](https://github.com/KhoaDayy/CapDraft-TTS/releases)
 2. Unzip and run `CapDraft-TTS.exe`
 3. Open **Settings** (gear) and set:
    - CapCut TTS API folder
@@ -79,7 +80,7 @@ Source runs also need Python 3.10+.
    - FFmpeg / FFprobe if not on `PATH`
 
 ```powershell
-Get-FileHash .\CapDraft-TTS-v1.0.1-windows-x64.zip -Algorithm SHA256
+Get-FileHash .\CapDraft-TTS-v1.0.2-windows-x64.zip -Algorithm SHA256
 # compare with the .sha256 file from the release
 ```
 
@@ -99,10 +100,11 @@ python main.py
 
 1. **Chọn project** → CapCut project folder or `draft_content.json`
 2. Review / filter captions
-3. Pick language + voice (120+ CapCut voices from the online catalog)
-4. Set rate, clip speed, pitch, and existing-TTS policy
-5. Select captions → **Tạo và gắn TTS**
-6. Close the project in CapCut before write, then reopen CapCut to check the timeline
+3. Use **Xuất SRT** to save every non-empty caption as a subtitle file, or continue with TTS
+4. Pick language + voice (120+ CapCut voices from the online catalog)
+5. Set rate, clip speed, pitch, and existing-TTS policy
+6. Select captions → **Tạo và gắn TTS**
+7. Close the project in CapCut before write, then reopen CapCut to check the timeline
 
 > [!IMPORTANT]
 > Close the CapCut project before writing. CapDraft TTS keeps local backups, but keep your own backup of important drafts.
@@ -169,7 +171,7 @@ docs/                   Translated READMEs
 
 ```powershell
 python -m unittest discover -s tests -v
-.\build-release.ps1 -Version 1.0.1
+.\build-release.ps1 -Version 1.0.2
 ```
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CHANGELOG.md`](CHANGELOG.md).

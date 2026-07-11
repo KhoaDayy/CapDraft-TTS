@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.2 — 2026-07-11
+
+### Tính năng
+
+- Đọc caption trong project CapCut và xuất trực tiếp thành file SubRip (`.srt`).
+- Giữ đúng thứ tự timeline, timestamp mili-giây, caption nhiều dòng và tiếng Việt UTF-8.
+
 ## 1.0.1 — 2026-07-11
 
 ### Tính năng

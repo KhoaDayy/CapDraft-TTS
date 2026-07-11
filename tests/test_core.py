@@ -24,6 +24,7 @@ from core.capcut_project.models import (
 )
 from core.capcut_project.voice_catalog import VoiceCatalog
 from core.capcut_project.draft_reader import DraftReader
+from core.capcut_project.srt_exporter import export_captions_srt, render_captions_srt
 from core.capcut_project.draft_patcher import DraftPatcher
 from core.capcut_project.native_audio_alignment import (
     NativeAudioAlignmentSettings,
@@ -237,6 +238,34 @@ class TestDraftReader(unittest.TestCase):
         insp = r.inspect_project()
         self.assertGreater(insp.valid_caption_count, 0)
         self.assertIsInstance(insp.warnings, list)
+
+
+class TestSrtExporter(unittest.TestCase):
+    def test_render_uses_srt_timestamps_and_skips_empty_captions(self):
+        captions = [
+            CaptionRow(1, "track", "seg-1", "mat-1", 1_234_567, 2_000_000, "Xin chào", []),
+            CaptionRow(2, "track", "seg-2", "mat-2", 4_000_000, 1_000_000, "   ", []),
+            CaptionRow(3, "track", "seg-3", "mat-3", 3_500_000, 500_000, "Dòng 1\r\nDòng 2", []),
+        ]
+
+        rendered = render_captions_srt(captions)
+
+        self.assertEqual(
+            rendered,
+            "1\n00:00:01,235 --> 00:00:03,235\nXin chào\n\n"
+            "2\n00:00:03,500 --> 00:00:04,000\nDòng 1\nDòng 2\n",
+        )
+
+    def test_export_writes_utf8_bom_for_windows_editors(self):
+        caption = CaptionRow(1, "track", "seg", "mat", 0, 1_000_000, "Tiếng Việt", [])
+        with tempfile.TemporaryDirectory() as td:
+            output = Path(td) / "captions.srt"
+
+            count = export_captions_srt([caption], output)
+
+            self.assertEqual(count, 1)
+            self.assertTrue(output.read_bytes().startswith(b"\xef\xbb\xbf"))
+            self.assertIn("Tiếng Việt", output.read_text(encoding="utf-8-sig"))
 
 
 class TestPatcherIntegration(unittest.TestCase):

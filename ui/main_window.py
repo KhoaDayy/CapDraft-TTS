@@ -222,9 +222,13 @@ class MainWindow(QMainWindow):
         self.btn_reload = ToolButton(FluentIcon.SYNC)
         self.btn_reload.setToolTip("Tải lại project")
 
+        self.btn_export_srt = PushButton("Xuất SRT")
+        self.btn_export_srt.setToolTip("Xuất toàn bộ caption trong project thành file phụ đề .srt")
+
         row.addWidget(self.ed_project, 1)
         row.addWidget(self.btn_browse)
         row.addWidget(self.btn_reload)
+        row.addWidget(self.btn_export_srt)
 
         self.lbl_info = self._muted_label("Chưa chọn project")
         self.lbl_info.setWordWrap(True)
@@ -509,6 +513,7 @@ class MainWindow(QMainWindow):
     def _connect_ui_signals(self):
         self.btn_browse.clicked.connect(self._browse_project)
         self.btn_reload.clicked.connect(self._reload_project)
+        self.btn_export_srt.clicked.connect(self._export_srt)
         self.cmb_lang.currentIndexChanged.connect(self._refresh_voice_combo)
         self.ed_voice_search.textChanged.connect(self._refresh_voice_combo)
         self.cmb_voice.currentIndexChanged.connect(self._on_voice_changed)
@@ -550,6 +555,7 @@ class MainWindow(QMainWindow):
             self.btn_cancel.setEnabled(False)
             self.btn_cancel.setText("Hủy")
             self.btn_reload.setEnabled(bool(self.ed_project.text().strip()))
+            self.btn_export_srt.setEnabled(False)
             self.btn_browse.setEnabled(True)
             self.lbl_progress.setText("Sẵn sàng")
         elif state == UiState.IDLE_READY:
@@ -558,6 +564,7 @@ class MainWindow(QMainWindow):
             self.btn_cancel.setEnabled(False)
             self.btn_cancel.setText("Hủy")
             self.btn_reload.setEnabled(True)
+            self.btn_export_srt.setEnabled(True)
             self.btn_browse.setEnabled(True)
         elif state == UiState.GENERATING:
             self.btn_generate.setEnabled(False)
@@ -565,6 +572,7 @@ class MainWindow(QMainWindow):
             self.btn_cancel.setEnabled(True)
             self.btn_cancel.setText("Hủy")
             self.btn_reload.setEnabled(False)
+            self.btn_export_srt.setEnabled(False)
             self.btn_browse.setEnabled(False)
         elif state == UiState.CANCELLING:
             self.btn_generate.setEnabled(False)
@@ -572,6 +580,7 @@ class MainWindow(QMainWindow):
             self.btn_cancel.setEnabled(False)
             self.btn_cancel.setText("Hủy")
             self.btn_reload.setEnabled(False)
+            self.btn_export_srt.setEnabled(False)
             self.btn_browse.setEnabled(False)
 
         # Settings + caption selection only when idle (table still scrollable)
@@ -737,6 +746,33 @@ class MainWindow(QMainWindow):
         path = self.ed_project.text().strip()
         if path:
             self._load_project(path)
+
+    def _export_srt(self):
+        info = self.service._info
+        if info is None:
+            self._notify("warning", "Chưa có project", "Hãy chọn project CapCut trước.")
+            return
+
+        default_path = info.project_directory / f"{info.project_directory.name}.srt"
+        output_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Xuất caption thành SRT",
+            str(default_path),
+            "SubRip Subtitle (*.srt)",
+        )
+        if not output_path:
+            return
+        if Path(output_path).suffix.lower() != ".srt":
+            output_path += ".srt"
+
+        try:
+            count = self.service.export_srt(output_path)
+        except Exception as e:
+            self._notify("error", "Không xuất được SRT", str(e), duration=5000)
+            return
+
+        self._append_log("SUCCESS", f"Đã xuất {count} caption: {output_path}", stage="SRT")
+        self._notify("success", "Đã xuất SRT", f"{count} caption · {output_path}", duration=4000)
 
     def _set_project_info(self, info) -> None:
         """Theme-safe plain-text summary (no hardcoded HTML colors)."""
