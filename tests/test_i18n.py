@@ -31,6 +31,26 @@ class TestAppearancePreferences(unittest.TestCase):
     def test_unknown_theme_falls_back_to_auto(self):
         self.assertEqual(normalize_theme_mode("neon"), "auto")
 
+    def test_light_theme_uses_light_native_palette(self):
+        import os
+
+        os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+        from PySide6.QtGui import QPalette
+        from PySide6.QtWidgets import QApplication
+        from core.config import AppConfig
+        from ui.main_window import MainWindow
+
+        app = QApplication.instance() or QApplication([])
+        cfg = AppConfig()
+        previous = cfg.theme_mode
+        try:
+            cfg.set("theme_mode", "light")
+            MainWindow._apply_theme()
+            window = app.palette().color(QPalette.Window)
+            self.assertGreater(window.lightness(), 200)
+        finally:
+            cfg.set("theme_mode", previous)
+
 
 if __name__ == "__main__":
     unittest.main()

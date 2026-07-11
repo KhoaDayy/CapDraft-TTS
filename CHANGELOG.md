@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.2 — 2026-07-12
+
+### Sửa lỗi
+
+- Chủ đề **Sáng** áp dụng đúng palette sáng cho toàn app (trước đó chỉ đổi control Fluent, nền/table vẫn tối).
+- Cân lại layout **Cài đặt giọng đọc**: label căn phải, cột voice rộng hơn, `TTS đã tồn tại` không còn nửa hàng trống.
+- Panel nâng cao và toolbar caption khoảng cách gọn hơn.
+
 ## 1.1.1 — 2026-07-11
 
 ### Build

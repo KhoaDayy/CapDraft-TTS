@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import Qt, QThread, Signal
-from PySide6.QtGui import QFont, QPalette, QTextCursor
+from PySide6.QtGui import QColor, QFont, QPalette, QTextCursor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QSizePolicy,
     QSplitter,
+    QStyleFactory,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -41,6 +42,7 @@ from qfluentwidgets import (
     TextEdit,
     Theme,
     ToolButton,
+    isDarkTheme,
     setTheme,
     setThemeColor,
 )
@@ -183,6 +185,59 @@ class MainWindow(QMainWindow):
         mode = AppConfig().theme_mode
         setTheme({"light": Theme.LIGHT, "dark": Theme.DARK}.get(mode, Theme.AUTO))
         setThemeColor("#0078D4")
+        # Fluent only skins its own widgets; native Qt chrome stays system-colored
+        # unless we push a palette (Fusion makes light/dark palettes reliable).
+        MainWindow._apply_native_palette()
+
+    @staticmethod
+    def _apply_native_palette():
+        app = QApplication.instance()
+        if app is None:
+            return
+        if app.style().objectName().lower() != "fusion":
+            fusion = QStyleFactory.create("Fusion")
+            if fusion is not None:
+                app.setStyle(fusion)
+
+        dark = isDarkTheme()
+        pal = QPalette()
+        if dark:
+            window = QColor(32, 32, 32)
+            base = QColor(45, 45, 45)
+            alt = QColor(39, 39, 39)
+            text = QColor(240, 240, 240)
+            disabled = QColor(140, 140, 140)
+            highlight = QColor(0, 120, 212)
+            button = QColor(55, 55, 55)
+        else:
+            window = QColor(243, 243, 243)
+            base = QColor(255, 255, 255)
+            alt = QColor(249, 249, 249)
+            text = QColor(28, 28, 28)
+            disabled = QColor(140, 140, 140)
+            highlight = QColor(0, 120, 212)
+            button = QColor(251, 251, 251)
+
+        pal.setColor(QPalette.Window, window)
+        pal.setColor(QPalette.WindowText, text)
+        pal.setColor(QPalette.Base, base)
+        pal.setColor(QPalette.AlternateBase, alt)
+        pal.setColor(QPalette.Text, text)
+        pal.setColor(QPalette.Button, button)
+        pal.setColor(QPalette.ButtonText, text)
+        pal.setColor(QPalette.ToolTipBase, base)
+        pal.setColor(QPalette.ToolTipText, text)
+        pal.setColor(QPalette.BrightText, QColor(255, 255, 255))
+        pal.setColor(QPalette.Highlight, highlight)
+        pal.setColor(QPalette.HighlightedText, QColor(255, 255, 255))
+        pal.setColor(QPalette.Link, highlight)
+        pal.setColor(QPalette.PlaceholderText, disabled)
+        for group in (QPalette.Disabled,):
+            pal.setColor(group, QPalette.WindowText, disabled)
+            pal.setColor(group, QPalette.Text, disabled)
+            pal.setColor(group, QPalette.ButtonText, disabled)
+            pal.setColor(group, QPalette.Highlight, QColor(100, 100, 100) if dark else QColor(180, 180, 180))
+        app.setPalette(pal)
 
     # ------------------------------------------------------------------
     # UI builders
@@ -242,36 +297,49 @@ class MainWindow(QMainWindow):
         self.lbl_info.setFont(font)
         return box
 
+    def _field_label(self, text: str) -> QLabel:
+        lbl = QLabel(text)
+        lbl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        return lbl
+
     def _build_voice_settings(self) -> QWidget:
         box = QGroupBox(tr("voice_settings"))
         grid = QGridLayout(box)
-        grid.setContentsMargins(10, 8, 10, 8)
-        grid.setHorizontalSpacing(12)
-        grid.setVerticalSpacing(6)
+        grid.setContentsMargins(10, 10, 10, 10)
+        grid.setHorizontalSpacing(10)
+        grid.setVerticalSpacing(8)
+        # Labels stay compact; voice column gets the free width.
+        grid.setColumnMinimumWidth(0, 96)
+        grid.setColumnMinimumWidth(2, 72)
         grid.setColumnStretch(1, 1)
-        grid.setColumnStretch(3, 1)
+        grid.setColumnStretch(3, 2)
 
         self.cmb_lang = ComboBox()
-        self.cmb_lang.setMinimumWidth(140)
+        self.cmb_lang.setMinimumWidth(120)
+        self.cmb_lang.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
 
         self.cmb_voice = ComboBox()
-        self.cmb_voice.setMinimumWidth(220)
+        self.cmb_voice.setMinimumWidth(200)
         self.cmb_voice.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         self.ed_voice_search = LineEdit()
         self.ed_voice_search.setPlaceholderText(tr("search_voice"))
-        self.ed_voice_search.setMaximumWidth(180)
+        self.ed_voice_search.setClearButtonEnabled(True)
+        self.ed_voice_search.setFixedWidth(150)
 
-        voice_row = QHBoxLayout()
+        voice_wrap = QWidget()
+        voice_row = QHBoxLayout(voice_wrap)
         voice_row.setSpacing(6)
         voice_row.setContentsMargins(0, 0, 0, 0)
-        voice_row.addWidget(self.cmb_voice, 3)
-        voice_row.addWidget(self.ed_voice_search, 1)
+        voice_row.addWidget(self.cmb_voice, 1)
+        voice_row.addWidget(self.ed_voice_search)
 
         self.lbl_voice_adv = self._muted_label("")
         small = self.lbl_voice_adv.font()
         small.setPointSize(max(8, small.pointSize() - 1))
         self.lbl_voice_adv.setFont(small)
+        self.lbl_voice_adv.setWordWrap(False)
+        self.lbl_voice_adv.setTextInteractionFlags(Qt.TextSelectableByMouse)
 
         cfg = AppConfig()
         try:
@@ -285,6 +353,7 @@ class MainWindow(QMainWindow):
         self.sp_clip_speed.setSingleStep(0.05)
         self.sp_clip_speed.setValue(default_clip)
         self.sp_clip_speed.setSuffix("x")
+        self.sp_clip_speed.setMaximumWidth(120)
         self.sp_clip_speed.setToolTip(
             "Tốc độ phát giọng đọc trên timeline CapCut sau khi gắn. Ảnh hưởng thời lượng hiển thị."
         )
@@ -298,6 +367,7 @@ class MainWindow(QMainWindow):
             "Đổi cao độ theo tốc độ",
             userData=ToneModifyMode.FOLLOW_SPEED.value,
         )
+        self.cmb_tone.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.cmb_tone.setToolTip(
             "follow_speed bật is_tone_modify trong draft CapCut; preserve_pitch giữ pitch."
         )
@@ -305,22 +375,23 @@ class MainWindow(QMainWindow):
         self.cmb_existing = ComboBox()
         self.cmb_existing.addItem(tr("replace_tts"), userData="replace_existing")
         self.cmb_existing.addItem(tr("skip_existing_tts"), userData="skip_existing")
+        self.cmb_existing.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
 
-        # Row 0: language | voice
-        grid.addWidget(QLabel(tr("language_label")), 0, 0)
+        # Row 0: language | voice + search
+        grid.addWidget(self._field_label(tr("language_label")), 0, 0)
         grid.addWidget(self.cmb_lang, 0, 1)
-        grid.addWidget(QLabel(tr("voice_label")), 0, 2)
-        grid.addLayout(voice_row, 0, 3)
-        # Row 1: voice metadata under voice selector
+        grid.addWidget(self._field_label(tr("voice_label")), 0, 2)
+        grid.addWidget(voice_wrap, 0, 3)
+        # Row 1: voice metadata under voice selector only
         grid.addWidget(self.lbl_voice_adv, 1, 3)
         # Row 2: clip speed | tone
-        grid.addWidget(QLabel(tr("voice_speed")), 2, 0)
-        grid.addWidget(self.sp_clip_speed, 2, 1)
-        grid.addWidget(QLabel(tr("pitch")), 2, 2)
+        grid.addWidget(self._field_label(tr("voice_speed")), 2, 0)
+        grid.addWidget(self.sp_clip_speed, 2, 1, Qt.AlignLeft)
+        grid.addWidget(self._field_label(tr("pitch")), 2, 2)
         grid.addWidget(self.cmb_tone, 2, 3)
-        # Row 3: existing TTS
-        grid.addWidget(QLabel(tr("existing_tts")), 3, 0)
-        grid.addWidget(self.cmb_existing, 3, 1)
+        # Row 3: existing TTS spans the field columns (no half-empty row)
+        grid.addWidget(self._field_label(tr("existing_tts")), 3, 0)
+        grid.addWidget(self.cmb_existing, 3, 1, 1, 3)
         return box
 
     def _build_advanced_panel(self) -> QWidget:
@@ -340,9 +411,13 @@ class MainWindow(QMainWindow):
 
         self.advanced_content = QWidget()
         adv = QGridLayout(self.advanced_content)
-        adv.setContentsMargins(10, 4, 10, 6)
-        adv.setHorizontalSpacing(12)
-        adv.setVerticalSpacing(6)
+        adv.setContentsMargins(10, 6, 10, 8)
+        adv.setHorizontalSpacing(10)
+        adv.setVerticalSpacing(8)
+        adv.setColumnMinimumWidth(0, 96)
+        adv.setColumnMinimumWidth(2, 72)
+        adv.setColumnStretch(1, 1)
+        adv.setColumnStretch(3, 2)
 
         self.chk_cache = CheckBox(tr("use_cache"))
         self.chk_cache.setChecked(True)
@@ -357,12 +432,14 @@ class MainWindow(QMainWindow):
         self.sp_trim_frames.setSingleStep(0.5)
         self.sp_trim_frames.setValue(3.0)
         self.sp_trim_frames.setSuffix(" khung hình")
+        self.sp_trim_frames.setMaximumWidth(140)
 
         self.sp_fade_ms = DoubleSpinBox()
         self.sp_fade_ms.setRange(0.0, 20.0)
         self.sp_fade_ms.setSingleStep(1.0)
         self.sp_fade_ms.setValue(8.0)
         self.sp_fade_ms.setSuffix(" ms")
+        self.sp_fade_ms.setMaximumWidth(120)
 
         self.lbl_align_hint = self._muted_label("3 khung hình @ 30 FPS = 100 ms")
         hf = self.lbl_align_hint.font()
@@ -371,11 +448,11 @@ class MainWindow(QMainWindow):
 
         adv.addWidget(self.chk_cache, 0, 0, 1, 2)
         adv.addWidget(self.chk_align, 0, 2, 1, 2)
-        adv.addWidget(QLabel(tr("trim_start")), 1, 0)
-        adv.addWidget(self.sp_trim_frames, 1, 1)
-        adv.addWidget(QLabel(tr("fade_in")), 1, 2)
-        adv.addWidget(self.sp_fade_ms, 1, 3)
-        adv.addWidget(self.lbl_align_hint, 2, 0, 1, 4)
+        adv.addWidget(self._field_label(tr("trim_start")), 1, 0)
+        adv.addWidget(self.sp_trim_frames, 1, 1, Qt.AlignLeft)
+        adv.addWidget(self._field_label(tr("fade_in")), 1, 2)
+        adv.addWidget(self.sp_fade_ms, 1, 3, Qt.AlignLeft)
+        adv.addWidget(self.lbl_align_hint, 2, 1, 1, 3)
 
         self.advanced_content.setVisible(False)
         self.advanced_content.setMaximumHeight(0)  # collapse frees layout height
@@ -400,14 +477,14 @@ class MainWindow(QMainWindow):
         cap_l.setSpacing(6)
 
         tools = QHBoxLayout()
-        tools.setSpacing(6)
+        tools.setSpacing(8)
         if _SearchLineEdit is not None:
             self.ed_search = _SearchLineEdit()
         else:
             self.ed_search = LineEdit()
         self.ed_search.setPlaceholderText(tr("search_caption"))
         self.ed_search.setClearButtonEnabled(True)
-        self.ed_search.setMinimumWidth(180)
+        self.ed_search.setMinimumWidth(220)
 
         self.btn_select_all = PushButton(tr("select_all"))
         self.btn_deselect_all = PushButton(tr("deselect_all"))
@@ -419,6 +496,7 @@ class MainWindow(QMainWindow):
         tools.addWidget(self.ed_search, 1)
         tools.addWidget(self.btn_select_all)
         tools.addWidget(self.btn_deselect_all)
+        tools.addSpacing(4)
         tools.addWidget(self.chk_hide_empty)
         tools.addWidget(self.chk_only_no_tts)
         tools.addWidget(self.chk_only_errors)
