@@ -4,8 +4,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QFileDialog, QFormLayout, QHBoxLayout, QTabWidget
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QFormLayout,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QTabWidget,
+)
 from qfluentwidgets import (
     Dialog,
     DoubleSpinBox,
@@ -15,6 +23,10 @@ from qfluentwidgets import (
     SpinBox,
 )
 
+from core.capcut_project.voice_catalog_updater import (
+    VoiceCatalogUpdateError,
+    update_voice_catalog_from_url,
+)
 from core.config import AppConfig
 
 
@@ -24,18 +36,23 @@ class SettingsDialog(Dialog):
     settings_saved = Signal()
 
     def __init__(self, parent=None):
-        super().__init__("Cài đặt", "Tùy chỉnh giao diện, đường dẫn và hiệu năng TTS.", parent)
+        super().__init__(
+            "Cài đặt",
+            "Tùy chỉnh đường dẫn, danh mục giọng đọc và hiệu năng TTS.",
+            parent,
+        )
         self.cfg = AppConfig()
         self._build_ui()
         self.yesButton.setText("Lưu cài đặt")
         self.cancelButton.setText("Hủy")
         self.yesButton.clicked.disconnect()
         self.yesButton.clicked.connect(self._save)
-        self.setMinimumWidth(620)
+        self.setMinimumWidth(680)
 
     def _build_ui(self):
         tabs = QTabWidget()
         tabs.addTab(self._paths_tab(), "Đường dẫn")
+        tabs.addTab(self._voices_tab(), "Giọng đọc")
         tabs.addTab(self._performance_tab(), "Hiệu năng")
         self.textLayout.addWidget(tabs)
 
@@ -43,16 +60,35 @@ class SettingsDialog(Dialog):
         page, form = self._form_page()
         self.capcut_tts_path = self._path_row("capcut_tts_path", directory=True)
         self.device_json_path = self._path_row("device_json_path", file_filter="JSON (*.json)")
-        self.voice_catalog_path = self._path_row("voice_catalog_path", file_filter="JSON (*.json)")
         self.ffmpeg_path = LineEdit()
         self.ffmpeg_path.setText(str(self.cfg.get("ffmpeg_path", "ffmpeg")))
         self.ffprobe_path = LineEdit()
         self.ffprobe_path.setText(str(self.cfg.get("ffprobe_path", "ffprobe")))
         form.addRow("CapCut TTS API", self.capcut_tts_path.parentWidget())
         form.addRow("Thiết bị (device.json)", self.device_json_path.parentWidget())
-        form.addRow("Danh mục giọng", self.voice_catalog_path.parentWidget())
         form.addRow("FFmpeg", self.ffmpeg_path)
         form.addRow("FFprobe", self.ffprobe_path)
+        return page
+
+    def _voices_tab(self):
+        page, form = self._form_page()
+        self.voice_catalog_path = self._path_row("voice_catalog_path", file_filter="JSON (*.json)")
+        self.voice_catalog_update_url = LineEdit()
+        self.voice_catalog_update_url.setText(
+            str(self.cfg.get("voice_catalog_update_url", ""))
+        )
+        self.voice_catalog_update_url.setPlaceholderText(
+            "https://raw.githubusercontent.com/.../Voice.json"
+        )
+        self.btn_update_voices = PushButton(FluentIcon.SYNC, "Cập nhật từ GitHub")
+        self.btn_update_voices.setToolTip("Tải Voice.json mới, kiểm tra hợp lệ rồi thay thế file local")
+        self.btn_update_voices.clicked.connect(self._update_voice_catalog)
+        self.lbl_voice_update_status = QLabel("")
+        self.lbl_voice_update_status.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        form.addRow("Danh mục giọng", self.voice_catalog_path.parentWidget())
+        form.addRow("URL cập nhật", self.voice_catalog_update_url)
+        form.addRow("", self.btn_update_voices)
+        form.addRow("", self.lbl_voice_update_status)
         return page
 
     def _performance_tab(self):
@@ -84,6 +120,7 @@ class SettingsDialog(Dialog):
     @staticmethod
     def _form_page():
         from PySide6.QtWidgets import QWidget
+
         page = QWidget()
         form = QFormLayout(page)
         form.setContentsMargins(18, 18, 18, 18)
@@ -93,29 +130,36 @@ class SettingsDialog(Dialog):
 
     def _path_row(self, key: str, directory: bool = False, file_filter: str = "All files (*)"):
         from PySide6.QtWidgets import QWidget
+
         wrap = QWidget()
         row = QHBoxLayout(wrap)
         row.setContentsMargins(0, 0, 0, 0)
         edit = LineEdit()
         edit.setText(str(self.cfg.get(key, "")))
         button = PushButton(FluentIcon.FOLDER, "Chọn")
+
         def browse():
             current = edit.text() or str(Path.home())
-            path = (QFileDialog.getExistingDirectory(self, "Chọn thư mục", current) if directory
-                    else QFileDialog.getOpenFileName(self, "Chọn tệp", current, file_filter)[0])
+            path = (
+                QFileDialog.getExistingDirectory(self, "Chọn thư mục", current)
+                if directory
+                else QFileDialog.getOpenFileName(self, "Chọn tệp", current, file_filter)[0]
+            )
             if path:
                 edit.setText(path)
+
         button.clicked.connect(browse)
         row.addWidget(edit, 1)
         row.addWidget(button)
         edit._container = wrap
         return edit
 
-    def _save(self):
-        values = {
+    def _collect_values(self):
+        return {
             "capcut_tts_path": self.capcut_tts_path.text().strip(),
             "device_json_path": self.device_json_path.text().strip(),
             "voice_catalog_path": self.voice_catalog_path.text().strip(),
+            "voice_catalog_update_url": self.voice_catalog_update_url.text().strip(),
             "ffmpeg_path": self.ffmpeg_path.text().strip() or "ffmpeg",
             "ffprobe_path": self.ffprobe_path.text().strip() or "ffprobe",
             "tts_chunk_size": self.chunk_size.value(),
@@ -124,7 +168,34 @@ class SettingsDialog(Dialog):
             "tts_poll_interval_sec": self.poll_interval.value(),
             "max_backups": self.max_backups.value(),
         }
-        self.cfg._data.update(values)
+
+    def _save(self):
+        self.cfg._data.update(self._collect_values())
         self.cfg.save()
         self.settings_saved.emit()
         self.accept()
+
+    def _update_voice_catalog(self):
+        values = self._collect_values()
+        url = values["voice_catalog_update_url"]
+        destination = self.cfg.resolve_app_path(values["voice_catalog_path"])
+        self.btn_update_voices.setEnabled(False)
+        self.lbl_voice_update_status.setText("Đang tải Voice.json...")
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        try:
+            result = update_voice_catalog_from_url(url=url, destination=destination)
+        except (VoiceCatalogUpdateError, OSError, ValueError) as exc:
+            self.lbl_voice_update_status.setText(f"Cập nhật thất bại: {exc}")
+            QMessageBox.warning(self, "Không cập nhật được Voice.json", str(exc))
+        else:
+            self.cfg._data.update(values)
+            self.cfg.save()
+            self.settings_saved.emit()
+            msg = f"Đã cập nhật {result.voice_count} giọng từ GitHub."
+            if result.backup_path:
+                msg += f" Backup: {result.backup_path.name}"
+            self.lbl_voice_update_status.setText(msg)
+            QMessageBox.information(self, "Đã cập nhật Voice.json", msg)
+        finally:
+            QApplication.restoreOverrideCursor()
+            self.btn_update_voices.setEnabled(True)

@@ -14,6 +14,7 @@
 - Đọc caption trực tiếp từ `draft_content.json`.
 - Lọc, tìm kiếm và chọn caption cần tạo giọng đọc.
 - Hỗ trợ 129 giọng, thay đổi tốc độ và giữ/đổi cao độ.
+- Cập nhật `Voice.json` online từ GitHub để thêm/sửa giọng mà không cần rebuild app.
 - Cache audio, xử lý song song và hủy tác vụ an toàn.
 - Tự căn đầu audio theo frame, kiểm tra tính toàn vẹn trước khi ghi.
 - Backup và atomic save; rollback nếu quá trình cập nhật gặp lỗi.
@@ -63,9 +64,20 @@ Mở nút **Cài đặt** (biểu tượng bánh răng ở góc dưới), sau đ
 `config.json` là cấu hình theo máy và được Git bỏ qua. Hãy bắt đầu từ [`config.example.json`](config.example.json). Các nhóm chính gồm:
 
 - `capcut_tts_path`, `device_json_path`, `voice_catalog_path`: nguồn TTS và giọng.
+- `voice_catalog_update_url`: URL raw GitHub dùng để cập nhật `Voice.json` trong app.
 - `ffmpeg_path`, `ffprobe_path`: công cụ media.
 - `tts_chunk_size`, `tts_parallel_chunks`, `tts_download_workers`: hiệu năng.
 - `max_backups`: số backup tối đa giữ lại.
+
+## Cập nhật giọng đọc online
+
+App mặc định tải danh mục giọng từ:
+
+```text
+https://raw.githubusercontent.com/KhoaDayy/CapDraft-TTS/main/Voice.json
+```
+
+Khi muốn thêm/sửa giọng, chỉ cần cập nhật `Voice.json` trên nhánh `main` của GitHub. Trong app, mở **Cài đặt → Giọng đọc → Cập nhật từ GitHub**. App sẽ tải file mới, kiểm tra schema, backup file cũ và reload danh sách giọng ngay.
 
 ## Kiểm thử
 

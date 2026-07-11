@@ -33,6 +33,10 @@ from core.capcut_project.native_audio_alignment import (
 from core.capcut_project.paths import capcut_text_reading_path, ensure_draftpath_placeholder
 from core.capcut_project.validator import DraftValidator
 from core.capcut_project.tts_project_service import CapCutProjectTtsService
+from core.capcut_project.voice_catalog_updater import (
+    VoiceCatalogUpdateError,
+    update_voice_catalog_from_url,
+)
 
 
 # Prefer a clean CapCut draft (no TTS). Workspace / CapCut project drafts may already be patched.
@@ -102,6 +106,81 @@ class TestVoiceCatalog(unittest.TestCase):
         vi = cat.filter(language_code="vi")
         self.assertTrue(vi)
         self.assertTrue(all(v.language_code == "vi" or v.locale.startswith("vi") for v in vi))
+
+
+class TestVoiceCatalogUpdater(unittest.TestCase):
+    def test_update_downloads_valid_catalog_and_keeps_backup(self):
+        with tempfile.TemporaryDirectory() as td:
+            dest = Path(td) / "Voice.json"
+            dest.write_text(
+                json.dumps(
+                    [
+                        {
+                            "lan": "vi",
+                            "lang": "vi-VN",
+                            "voice_type": "old_voice",
+                            "display_name": "Old",
+                            "resource_id": "old_resource",
+                        }
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            payload = [
+                {
+                    "lan": "vi",
+                    "lang": "vi-VN",
+                    "voice_type": "new_voice",
+                    "display_name": "New",
+                    "resource_id": "new_resource",
+                }
+            ]
+
+            class FakeResponse:
+                text = json.dumps(payload)
+
+                def raise_for_status(self):
+                    return None
+
+            with patch("core.capcut_project.voice_catalog_updater.requests.get", return_value=FakeResponse()):
+                result = update_voice_catalog_from_url(
+                    url="https://example.test/Voice.json",
+                    destination=dest,
+                )
+
+            self.assertEqual(result.voice_count, 1)
+            self.assertTrue(result.backup_path and result.backup_path.exists())
+            updated = json.loads(dest.read_text(encoding="utf-8"))
+            self.assertEqual(updated[0]["voice_type"], "new_voice")
+
+    def test_update_rejects_invalid_catalog_without_overwriting(self):
+        with tempfile.TemporaryDirectory() as td:
+            dest = Path(td) / "Voice.json"
+            original = [
+                {
+                    "lan": "vi",
+                    "lang": "vi-VN",
+                    "voice_type": "old_voice",
+                    "display_name": "Old",
+                    "resource_id": "old_resource",
+                }
+            ]
+            dest.write_text(json.dumps(original), encoding="utf-8")
+
+            class FakeResponse:
+                text = json.dumps({"not": "a catalog"})
+
+                def raise_for_status(self):
+                    return None
+
+            with patch("core.capcut_project.voice_catalog_updater.requests.get", return_value=FakeResponse()):
+                with self.assertRaises(VoiceCatalogUpdateError):
+                    update_voice_catalog_from_url(
+                        url="https://example.test/Voice.json",
+                        destination=dest,
+                    )
+
+            self.assertEqual(json.loads(dest.read_text(encoding="utf-8")), original)
 
 
 class TestToneAndSpeed(unittest.TestCase):

@@ -12,6 +12,7 @@ from .models import (
     map_tone_mode_to_capcut_flag,
 )
 from .voice_catalog import VoiceCatalog
+from .voice_catalog_updater import VoiceCatalogUpdateError, VoiceCatalogUpdateResult
 from .draft_reader import DraftReader
 from .tts_project_service import CapCutProjectTtsService
 
@@ -26,6 +27,8 @@ __all__ = [
     "VoiceOption",
     "map_tone_mode_to_capcut_flag",
     "VoiceCatalog",
+    "VoiceCatalogUpdateError",
+    "VoiceCatalogUpdateResult",
     "DraftReader",
     "CapCutProjectTtsService",
 ]

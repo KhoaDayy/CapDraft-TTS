@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.1 — 2026-07-11
+
+### Tính năng
+
+- Thêm cập nhật `Voice.json` online từ GitHub trong **Cài đặt → Giọng đọc**.
+- Tự kiểm tra file tải về, backup file cũ và reload danh sách giọng sau khi cập nhật.
+- Sửa lại chữ tiếng Việt trong Settings cho sạch hơn.
+
 ## 1.0.0 — 2026-07-11
 
 Bản phát hành Windows đầu tiên của CapDraft TTS.

@@ -34,6 +34,7 @@ from .paths import ensure_draftpath_placeholder
 from .project_exporter import ProjectExporter
 from .validator import DraftValidator
 from .voice_catalog import VoiceCatalog
+from .voice_catalog_updater import VoiceCatalogUpdateResult, update_voice_catalog_from_url
 
 
 LogCallback = Callable[[GenerationLogEvent], None]
@@ -167,6 +168,14 @@ class CapCutProjectTtsService:
         if not self.catalog.voices:
             self.catalog.load()
         return self.catalog
+
+    def update_voice_catalog(self, url: str | None = None) -> VoiceCatalogUpdateResult:
+        result = update_voice_catalog_from_url(
+            url=url or self.config.get("voice_catalog_update_url", ""),
+            destination=self.config.voice_catalog_path,
+        )
+        self.catalog.load(self.config.voice_catalog_path)
+        return result
 
     def inspect_project(
         self, selected_caption_ids: list[str] | None = None
