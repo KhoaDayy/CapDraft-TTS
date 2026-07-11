@@ -17,7 +17,7 @@
 - Cache audio, xử lý song song và hủy tác vụ an toàn.
 - Tự căn đầu audio theo frame, kiểm tra tính toàn vẹn trước khi ghi.
 - Backup và atomic save; rollback nếu quá trình cập nhật gặp lỗi.
-- Giao diện Fluent sáng/tối cùng trang Settings lưu cấu hình tự động.
+- Giao diện Fluent dark mode nhất quán cùng trang Settings lưu cấu hình tự động.
 
 ## Yêu cầu
 
@@ -59,7 +59,6 @@ Mở nút **Cài đặt** (biểu tượng bánh răng ở góc dưới), sau đ
 - `capcut_tts_path`, `device_json_path`, `voice_catalog_path`: nguồn TTS và giọng.
 - `ffmpeg_path`, `ffprobe_path`: công cụ media.
 - `tts_chunk_size`, `tts_parallel_chunks`, `tts_download_workers`: hiệu năng.
-- `theme`, `accent_color`: giao diện.
 - `max_backups`: số backup tối đa giữ lại.
 
 ## Kiểm thử

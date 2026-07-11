@@ -158,8 +158,7 @@ class GenerateWorker(QThread):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        cfg = AppConfig()
-        self._apply_theme(cfg)
+        self._apply_theme()
         self.setWindowTitle("CapDraft TTS — Tạo TTS cho project CapCut")
         self.setMinimumSize(1024, 720)
         self.resize(1280, 860)
@@ -177,10 +176,9 @@ class MainWindow(QMainWindow):
         self._load_voices()
 
     @staticmethod
-    def _apply_theme(cfg: AppConfig):
-        theme = {"light": Theme.LIGHT, "dark": Theme.DARK}.get(cfg.get("theme"), Theme.AUTO)
-        setTheme(theme)
-        setThemeColor(str(cfg.get("accent_color", "#0EA5A4")))
+    def _apply_theme():
+        setTheme(Theme.DARK)
+        setThemeColor("#0EA5A4")
 
     # ------------------------------------------------------------------
     # UI builders
@@ -535,7 +533,6 @@ class MainWindow(QMainWindow):
 
     def _open_settings(self):
         dialog = SettingsDialog(self)
-        dialog.settings_saved.connect(lambda: self._apply_theme(AppConfig()))
         dialog.settings_saved.connect(self._load_voices)
         dialog.exec()
 

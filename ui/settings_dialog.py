@@ -5,9 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QFileDialog, QFormLayout, QHBoxLayout, QLabel, QTabWidget, QVBoxLayout
+from PySide6.QtWidgets import QFileDialog, QFormLayout, QHBoxLayout, QTabWidget
 from qfluentwidgets import (
-    ComboBox,
     Dialog,
     DoubleSpinBox,
     FluentIcon,
@@ -36,25 +35,9 @@ class SettingsDialog(Dialog):
 
     def _build_ui(self):
         tabs = QTabWidget()
-        tabs.addTab(self._appearance_tab(), "Giao diện")
         tabs.addTab(self._paths_tab(), "Đường dẫn")
         tabs.addTab(self._performance_tab(), "Hiệu năng")
         self.textLayout.addWidget(tabs)
-
-    def _appearance_tab(self):
-        page, form = self._form_page()
-        self.theme = ComboBox()
-        for label, value in (("Theo hệ thống", "auto"), ("Sáng", "light"), ("Tối", "dark")):
-            self.theme.addItem(label, userData=value)
-        index = max(0, self.theme.findData(self.cfg.get("theme", "auto")))
-        self.theme.setCurrentIndex(index)
-        self.accent = LineEdit()
-        self.accent.setText(str(self.cfg.get("accent_color", "#0EA5A4")))
-        self.accent.setPlaceholderText("#0EA5A4")
-        form.addRow("Chủ đề", self.theme)
-        form.addRow("Màu nhấn", self.accent)
-        form.addRow("", QLabel("Thay đổi giao diện được áp dụng ngay sau khi lưu."))
-        return page
 
     def _paths_tab(self):
         page, form = self._form_page()
@@ -130,8 +113,6 @@ class SettingsDialog(Dialog):
 
     def _save(self):
         values = {
-            "theme": self.theme.currentData(),
-            "accent_color": self.accent.text().strip() or "#0EA5A4",
             "capcut_tts_path": self.capcut_tts_path.text().strip(),
             "device_json_path": self.device_json_path.text().strip(),
             "voice_catalog_path": self.voice_catalog_path.text().strip(),

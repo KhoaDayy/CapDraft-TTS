@@ -5,7 +5,7 @@ import unittest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QTabWidget
 
 from ui.settings_dialog import SettingsDialog
 
@@ -17,8 +17,8 @@ class TestSettingsDialog(unittest.TestCase):
 
     def test_dialog_builds_all_sections(self):
         dialog = SettingsDialog()
-        self.assertEqual(dialog.theme.count(), 3)
         self.assertTrue(dialog.capcut_tts_path.text())
+        self.assertEqual(dialog.findChild(QTabWidget).count(), 2)
         self.assertGreaterEqual(dialog.chunk_size.value(), 1)
         dialog.close()
 

@@ -14,7 +14,5 @@
   "tts_download_workers": 8,
   "cache_path": "cache",
   "project_output_path": "projects",
-  "max_backups": 10,
-  "theme": "auto",
-  "accent_color": "#0EA5A4"
+  "max_backups": 10
 }

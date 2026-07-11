@@ -26,8 +26,6 @@ DEFAULT_CONFIG = {
     "cache_path": "cache",
     "project_output_path": "projects",
     "max_backups": 10,
-    "theme": "auto",
-    "accent_color": "#0EA5A4",
 }
 
 
