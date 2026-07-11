@@ -174,10 +174,6 @@ python -m unittest discover -s tests -v
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CHANGELOG.md`](CHANGELOG.md).
 
-## Star history
-
-[![Star History Chart](https://api.star-history.com/svg?repos=KhoaDayy/CapDraft-TTS&type=Date)](https://star-history.com/#KhoaDayy/CapDraft-TTS&Date)
-
 ## License / legal
 
 - [`LICENSE`](LICENSE) (Apache-2.0)

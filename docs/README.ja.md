@@ -174,10 +174,6 @@ python -m unittest discover -s tests -v
 
 [`CONTRIBUTING.md`](../CONTRIBUTING.md) と [`CHANGELOG.md`](../CHANGELOG.md) を参照。
 
-## Star history
-
-[![Star History Chart](https://api.star-history.com/svg?repos=KhoaDayy/CapDraft-TTS&type=Date)](https://star-history.com/#KhoaDayy/CapDraft-TTS&Date)
-
 ## ライセンス / 法的注意
 
 - [`LICENSE`](../LICENSE)（Apache-2.0）
