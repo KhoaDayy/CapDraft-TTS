@@ -67,10 +67,32 @@ def _pick_clean_draft() -> Path:
 
 
 SAMPLE_DRAFT = _pick_clean_draft()
-VOICE_JSON = ROOT / "Voice.json"
 SAMPLE_VOICE_TYPE = "BV074_streaming"
 SAMPLE_RESOURCE_ID = "7102355709945188865"
 SAMPLE_VOICE_DISPLAY_NAME = "Cô Gái Hoạt Ngôn"
+SAMPLE_VOICE_PAYLOAD = [
+    {
+        "lan": "vi",
+        "lang": "vi-VN",
+        "voice_type": "BV074_streaming",
+        "display_name": "Cô Gái Hoạt Ngôn",
+        "resource_id": "7102355709945188865",
+    },
+    {
+        "lan": "vi",
+        "lang": "vi-VN",
+        "voice_type": "BV075_streaming",
+        "display_name": "Other",
+        "resource_id": "7102355709945188865",  # intentional duplicate resource_id
+    },
+    {
+        "lan": "en",
+        "lang": "en-US",
+        "voice_type": "en_voice",
+        "display_name": "English",
+        "resource_id": "999",
+    },
+]
 
 
 def _tts_count(draft: dict) -> int:
@@ -82,105 +104,79 @@ def _tts_count(draft: dict) -> int:
 
 
 class TestVoiceCatalog(unittest.TestCase):
-    def test_load_preserves_fields_and_duplicates(self):
-        cat = VoiceCatalog(VOICE_JSON)
-        voices = cat.load()
-        self.assertGreater(len(voices), 10)
-        # known entry
+    def test_load_data_preserves_fields_and_duplicates(self):
+        cat = VoiceCatalog("https://example.test/Voice.json")
+        voices = cat.load_data(SAMPLE_VOICE_PAYLOAD, source="test")
+        self.assertEqual(len(voices), 3)
         match = [v for v in voices if v.voice_type == "BV074_streaming"]
         self.assertTrue(match)
         self.assertEqual(match[0].display_name, "Cô Gái Hoạt Ngôn")
         self.assertEqual(match[0].resource_id, "7102355709945188865")
         # duplicate resource_ids must not be dropped
-        from collections import Counter
-
-        c = Counter(v.resource_id for v in voices)
-        # just ensure count equals raw file length for valid entries
-        raw = json.loads(VOICE_JSON.read_text(encoding="utf-8"))
-        valid = [x for x in raw if x.get("voice_type") and x.get("resource_id")]
-        self.assertEqual(len(voices), len(valid))
+        self.assertEqual(sum(1 for v in voices if v.resource_id == "7102355709945188865"), 2)
 
     def test_filter_language(self):
-        cat = VoiceCatalog(VOICE_JSON)
-        cat.load()
+        cat = VoiceCatalog("https://example.test/Voice.json")
+        cat.load_data(SAMPLE_VOICE_PAYLOAD, source="test")
         vi = cat.filter(language_code="vi")
         self.assertTrue(vi)
         self.assertTrue(all(v.language_code == "vi" or v.locale.startswith("vi") for v in vi))
 
+    def test_load_from_url(self):
+        payload = json.dumps(SAMPLE_VOICE_PAYLOAD)
+
+        class FakeResponse:
+            text = payload
+
+            def raise_for_status(self):
+                return None
+
+        cat = VoiceCatalog("https://example.test/Voice.json")
+        with patch("core.capcut_project.voice_catalog.requests.get", return_value=FakeResponse()) as get:
+            voices = cat.load()
+        get.assert_called_once()
+        self.assertEqual(len(voices), 3)
+        self.assertEqual(cat.url, "https://example.test/Voice.json")
+
 
 class TestVoiceCatalogUpdater(unittest.TestCase):
-    def test_update_downloads_valid_catalog_and_keeps_backup(self):
-        with tempfile.TemporaryDirectory() as td:
-            dest = Path(td) / "Voice.json"
-            dest.write_text(
-                json.dumps(
-                    [
-                        {
-                            "lan": "vi",
-                            "lang": "vi-VN",
-                            "voice_type": "old_voice",
-                            "display_name": "Old",
-                            "resource_id": "old_resource",
-                        }
-                    ]
-                ),
-                encoding="utf-8",
+    def test_update_loads_valid_catalog_into_memory(self):
+        payload = [
+            {
+                "lan": "vi",
+                "lang": "vi-VN",
+                "voice_type": "new_voice",
+                "display_name": "New",
+                "resource_id": "new_resource",
+            }
+        ]
+
+        class FakeResponse:
+            text = json.dumps(payload)
+
+            def raise_for_status(self):
+                return None
+
+        catalog = VoiceCatalog("https://example.test/Voice.json")
+        with patch("core.capcut_project.voice_catalog.requests.get", return_value=FakeResponse()):
+            result = update_voice_catalog_from_url(
+                url="https://example.test/Voice.json",
+                catalog=catalog,
             )
-            payload = [
-                {
-                    "lan": "vi",
-                    "lang": "vi-VN",
-                    "voice_type": "new_voice",
-                    "display_name": "New",
-                    "resource_id": "new_resource",
-                }
-            ]
 
-            class FakeResponse:
-                text = json.dumps(payload)
+        self.assertEqual(result.voice_count, 1)
+        self.assertEqual(catalog.voices[0].voice_type, "new_voice")
 
-                def raise_for_status(self):
-                    return None
+    def test_update_rejects_invalid_catalog(self):
+        class FakeResponse:
+            text = json.dumps({"not": "a catalog"})
 
-            with patch("core.capcut_project.voice_catalog_updater.requests.get", return_value=FakeResponse()):
-                result = update_voice_catalog_from_url(
-                    url="https://example.test/Voice.json",
-                    destination=dest,
-                )
+            def raise_for_status(self):
+                return None
 
-            self.assertEqual(result.voice_count, 1)
-            self.assertTrue(result.backup_path and result.backup_path.exists())
-            updated = json.loads(dest.read_text(encoding="utf-8"))
-            self.assertEqual(updated[0]["voice_type"], "new_voice")
-
-    def test_update_rejects_invalid_catalog_without_overwriting(self):
-        with tempfile.TemporaryDirectory() as td:
-            dest = Path(td) / "Voice.json"
-            original = [
-                {
-                    "lan": "vi",
-                    "lang": "vi-VN",
-                    "voice_type": "old_voice",
-                    "display_name": "Old",
-                    "resource_id": "old_resource",
-                }
-            ]
-            dest.write_text(json.dumps(original), encoding="utf-8")
-
-            class FakeResponse:
-                text = json.dumps({"not": "a catalog"})
-
-                def raise_for_status(self):
-                    return None
-
-            with patch("core.capcut_project.voice_catalog_updater.requests.get", return_value=FakeResponse()):
-                with self.assertRaises(VoiceCatalogUpdateError):
-                    update_voice_catalog_from_url(
-                        url="https://example.test/Voice.json",
-                        destination=dest,
-                    )
-
-            self.assertEqual(json.loads(dest.read_text(encoding="utf-8")), original)
+        with patch("core.capcut_project.voice_catalog.requests.get", return_value=FakeResponse()):
+            with self.assertRaises(VoiceCatalogUpdateError):
+                update_voice_catalog_from_url(url="https://example.test/Voice.json")
 
 
 class TestToneAndSpeed(unittest.TestCase):

@@ -1,31 +1,54 @@
-"""Voice catalog loaded from Voice.json — no hardcoded voice list."""
+"""Voice catalog loaded from a remote JSON URL — no local Voice.json."""
 
 from __future__ import annotations
 
 import json
-from pathlib import Path
+
+import requests
 
 from core.logger import logger
 from .models import VoiceOption
 
+DEFAULT_VOICE_CATALOG_URL = (
+    "https://raw.githubusercontent.com/KhoaDayy/CapDraft-TTS/refs/heads/main/Voice.json"
+)
+
+
+class VoiceCatalogError(RuntimeError):
+    """Raised when the remote voice catalog is unavailable or invalid."""
+
 
 class VoiceCatalog:
-    def __init__(self, path: Path | str | None = None):
-        self.path = Path(path) if path else None
+    def __init__(self, url: str | None = None):
+        self.url = (url or DEFAULT_VOICE_CATALOG_URL).strip()
         self._voices: list[VoiceOption] = []
 
-    def load(self, path: Path | str | None = None) -> list[VoiceOption]:
-        if path is not None:
-            self.path = Path(path)
-        if self.path is None:
-            raise ValueError("Voice catalog path is not set")
-        if not self.path.exists():
-            raise FileNotFoundError(f"Voice catalog not found: {self.path}")
+    def load(self, url: str | None = None, *, timeout: int = 20) -> list[VoiceOption]:
+        if url is not None:
+            self.url = (url or "").strip()
+        if not self.url:
+            raise VoiceCatalogError("Voice catalog URL is empty")
 
-        with open(self.path, "r", encoding="utf-8-sig") as f:
-            raw = json.load(f)
+        try:
+            response = requests.get(
+                self.url,
+                timeout=timeout,
+                headers={"Accept": "application/json,text/plain,*/*"},
+            )
+            response.raise_for_status()
+        except requests.RequestException as exc:
+            raise VoiceCatalogError(f"Cannot download voice catalog: {exc}") from exc
+
+        try:
+            raw = json.loads(response.text)
+        except json.JSONDecodeError as exc:
+            raise VoiceCatalogError(f"Voice catalog is not valid JSON: {exc}") from exc
+
+        return self.load_data(raw, source=self.url)
+
+    def load_data(self, raw, *, source: str = "memory") -> list[VoiceOption]:
         if not isinstance(raw, list):
-            raise ValueError(f"Voice catalog must be a JSON array: {self.path}")
+            raise VoiceCatalogError(f"Voice catalog must be a JSON array: {source}")
 
         voices: list[VoiceOption] = []
         for i, item in enumerate(raw):
@@ -49,8 +72,10 @@ class VoiceCatalog:
             )
 
         # Keep duplicate resource_id entries — CapCut may expose multiple labels.
+        if not voices:
+            raise VoiceCatalogError(f"Voice catalog has no usable voices: {source}")
         self._voices = voices
-        logger.info("Loaded %s voices from %s", len(voices), self.path)
+        logger.info("Loaded %s voices from %s", len(voices), source)
         return list(self._voices)
 
     @property

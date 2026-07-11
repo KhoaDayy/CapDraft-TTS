@@ -8,6 +8,8 @@ import os
 import sys
 from pathlib import Path
 
+from core.capcut_project.voice_catalog import DEFAULT_VOICE_CATALOG_URL
+
 APP_ROOT = (
     Path(sys.executable).resolve().parent
     if getattr(sys, "frozen", False)
@@ -19,8 +21,7 @@ DEFAULT_CONFIG = {
     "ffmpeg_path": "ffmpeg",
     "capcut_tts_path": "external/capcut-tts-api",
     "device_json_path": "external/capcut-tts-api/device.json",
-    "voice_catalog_path": "Voice.json",
-    "voice_catalog_update_url": "https://raw.githubusercontent.com/KhoaDayy/CapDraft-TTS/main/Voice.json",
+    "voice_catalog_url": DEFAULT_VOICE_CATALOG_URL,
     "default_voice": "BV074_streaming",
     "default_resource_id": "7102355709945188865",
     "default_rate": 1.0,
@@ -55,8 +56,18 @@ class AppConfig:
                 self._recursive_merge(self._data, loaded)
             except Exception as e:
                 print(f"Error loading config.json: {e}")
-        else:
+        self._normalize_legacy_keys()
+        if not self.config_path.exists():
             self.save()
+
+    def _normalize_legacy_keys(self):
+        # Prefer explicit URL; fall back to old update-url key; drop local path.
+        legacy_url = self._data.pop("voice_catalog_update_url", None)
+        self._data.pop("voice_catalog_path", None)
+        if not str(self._data.get("voice_catalog_url") or "").strip() and legacy_url:
+            self._data["voice_catalog_url"] = legacy_url
+        if not str(self._data.get("voice_catalog_url") or "").strip():
+            self._data["voice_catalog_url"] = DEFAULT_VOICE_CATALOG_URL
 
     @staticmethod
     def _recursive_merge(base: dict, override: dict):
@@ -129,5 +140,5 @@ class AppConfig:
         return float(self.get("default_rate") or 1.0)
 
     @property
-    def voice_catalog_path(self) -> Path:
-        return self.resolve_app_path(self.get("voice_catalog_path", "Voice.json"))
+    def voice_catalog_url(self) -> str:
+        return str(self.get("voice_catalog_url") or DEFAULT_VOICE_CATALOG_URL).strip()

@@ -4,9 +4,19 @@
 
 ### Tính năng
 
-- Thêm cập nhật `Voice.json` online từ GitHub trong **Cài đặt → Giọng đọc**.
-- Tự kiểm tra file tải về, backup file cũ và reload danh sách giọng sau khi cập nhật.
+- Tải danh sách giọng trực tiếp từ GitHub URL (mặc định `refs/heads/main/Voice.json`); không cần file `Voice.json` local trong package.
+- Settings → **Giọng đọc**: cấu hình URL + nút **Tải lại danh sách**.
 - Sửa lại chữ tiếng Việt trong Settings cho sạch hơn.
+
+### Thay đổi
+
+- Bỏ phụ thuộc `voice_catalog_path` / file local; config dùng `voice_catalog_url`.
+- Package Windows không còn bundle `Voice.json` — app luôn fetch online (cùng yêu cầu mạng với CapCut TTS API).
+
+### Phân phối
+
+- Windows portable x64; giải nén ZIP và chạy `CapDraft-TTS.exe`.
+- Kèm checksum SHA-256 để kiểm tra file tải xuống.
 
 ## 1.0.0 — 2026-07-11
 

@@ -48,13 +48,11 @@ class CapCutProjectTtsService:
         self,
         *,
         log_callback: LogCallback | None = None,
-        voice_catalog_path: Path | str | None = None,
+        voice_catalog_url: str | None = None,
     ):
         self.config = AppConfig()
         self.reader = DraftReader()
-        self.catalog = VoiceCatalog(
-            voice_catalog_path or self.config.voice_catalog_path
-        )
+        self.catalog = VoiceCatalog(voice_catalog_url or self.config.voice_catalog_url)
         self.exporter = ProjectExporter(max_backups=int(self.config.get("max_backups", 10) or 10))
         self.validator = DraftValidator()
         self._log_callback = log_callback
@@ -160,22 +158,19 @@ class CapCutProjectTtsService:
         return self.reader.get_captions()
 
     def get_voices(self) -> list:
-        if not self.catalog.voices:
-            self.catalog.load()
-        return self.catalog.voices
+        return self.get_voice_catalog().voices
 
-    def get_voice_catalog(self) -> VoiceCatalog:
-        if not self.catalog.voices:
-            self.catalog.load()
+    def get_voice_catalog(self, *, reload: bool = False) -> VoiceCatalog:
+        url = self.config.voice_catalog_url
+        if reload or not self.catalog.voices or self.catalog.url != url:
+            self.catalog.load(url)
         return self.catalog
 
     def update_voice_catalog(self, url: str | None = None) -> VoiceCatalogUpdateResult:
-        result = update_voice_catalog_from_url(
-            url=url or self.config.get("voice_catalog_update_url", ""),
-            destination=self.config.voice_catalog_path,
+        return update_voice_catalog_from_url(
+            url=url or self.config.voice_catalog_url,
+            catalog=self.catalog,
         )
-        self.catalog.load(self.config.voice_catalog_path)
-        return result
 
     def inspect_project(
         self, selected_caption_ids: list[str] | None = None

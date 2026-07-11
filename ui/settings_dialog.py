@@ -23,6 +23,7 @@ from qfluentwidgets import (
     SpinBox,
 )
 
+from core.capcut_project.voice_catalog import DEFAULT_VOICE_CATALOG_URL
 from core.capcut_project.voice_catalog_updater import (
     VoiceCatalogUpdateError,
     update_voice_catalog_from_url,
@@ -72,21 +73,15 @@ class SettingsDialog(Dialog):
 
     def _voices_tab(self):
         page, form = self._form_page()
-        self.voice_catalog_path = self._path_row("voice_catalog_path", file_filter="JSON (*.json)")
-        self.voice_catalog_update_url = LineEdit()
-        self.voice_catalog_update_url.setText(
-            str(self.cfg.get("voice_catalog_update_url", ""))
-        )
-        self.voice_catalog_update_url.setPlaceholderText(
-            "https://raw.githubusercontent.com/.../Voice.json"
-        )
-        self.btn_update_voices = PushButton(FluentIcon.SYNC, "Cập nhật từ GitHub")
-        self.btn_update_voices.setToolTip("Tải Voice.json mới, kiểm tra hợp lệ rồi thay thế file local")
+        self.voice_catalog_url = LineEdit()
+        self.voice_catalog_url.setText(self.cfg.voice_catalog_url)
+        self.voice_catalog_url.setPlaceholderText(DEFAULT_VOICE_CATALOG_URL)
+        self.btn_update_voices = PushButton(FluentIcon.SYNC, "Tải lại danh sách")
+        self.btn_update_voices.setToolTip("Tải danh sách giọng từ URL (không lưu file local)")
         self.btn_update_voices.clicked.connect(self._update_voice_catalog)
         self.lbl_voice_update_status = QLabel("")
         self.lbl_voice_update_status.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        form.addRow("Danh mục giọng", self.voice_catalog_path.parentWidget())
-        form.addRow("URL cập nhật", self.voice_catalog_update_url)
+        form.addRow("URL danh mục giọng", self.voice_catalog_url)
         form.addRow("", self.btn_update_voices)
         form.addRow("", self.lbl_voice_update_status)
         return page
@@ -158,8 +153,7 @@ class SettingsDialog(Dialog):
         return {
             "capcut_tts_path": self.capcut_tts_path.text().strip(),
             "device_json_path": self.device_json_path.text().strip(),
-            "voice_catalog_path": self.voice_catalog_path.text().strip(),
-            "voice_catalog_update_url": self.voice_catalog_update_url.text().strip(),
+            "voice_catalog_url": self.voice_catalog_url.text().strip() or DEFAULT_VOICE_CATALOG_URL,
             "ffmpeg_path": self.ffmpeg_path.text().strip() or "ffmpeg",
             "ffprobe_path": self.ffprobe_path.text().strip() or "ffprobe",
             "tts_chunk_size": self.chunk_size.value(),
@@ -171,31 +165,30 @@ class SettingsDialog(Dialog):
 
     def _save(self):
         self.cfg._data.update(self._collect_values())
+        self.cfg._normalize_legacy_keys()
         self.cfg.save()
         self.settings_saved.emit()
         self.accept()
 
     def _update_voice_catalog(self):
         values = self._collect_values()
-        url = values["voice_catalog_update_url"]
-        destination = self.cfg.resolve_app_path(values["voice_catalog_path"])
+        url = values["voice_catalog_url"]
         self.btn_update_voices.setEnabled(False)
-        self.lbl_voice_update_status.setText("Đang tải Voice.json...")
+        self.lbl_voice_update_status.setText("Đang tải danh sách giọng...")
         QApplication.setOverrideCursor(Qt.WaitCursor)
         try:
-            result = update_voice_catalog_from_url(url=url, destination=destination)
+            result = update_voice_catalog_from_url(url=url)
         except (VoiceCatalogUpdateError, OSError, ValueError) as exc:
-            self.lbl_voice_update_status.setText(f"Cập nhật thất bại: {exc}")
-            QMessageBox.warning(self, "Không cập nhật được Voice.json", str(exc))
+            self.lbl_voice_update_status.setText(f"Tải thất bại: {exc}")
+            QMessageBox.warning(self, "Không tải được danh sách giọng", str(exc))
         else:
             self.cfg._data.update(values)
+            self.cfg._normalize_legacy_keys()
             self.cfg.save()
             self.settings_saved.emit()
-            msg = f"Đã cập nhật {result.voice_count} giọng từ GitHub."
-            if result.backup_path:
-                msg += f" Backup: {result.backup_path.name}"
+            msg = f"Đã tải {result.voice_count} giọng từ GitHub."
             self.lbl_voice_update_status.setText(msg)
-            QMessageBox.information(self, "Đã cập nhật Voice.json", msg)
+            QMessageBox.information(self, "Đã tải danh sách giọng", msg)
         finally:
             QApplication.restoreOverrideCursor()
             self.btn_update_voices.setEnabled(True)

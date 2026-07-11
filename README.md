@@ -1,44 +1,93 @@
 <p align="center">
-  <img src="docs/assets/capdraft-tts-banner.png" alt="CapDraft TTS — captions to voice on a video timeline" width="100%">
+  <img src="docs/assets/capdraft-tts-banner.png" alt="CapDraft TTS — free CapCut TTS for your captions" width="100%">
 </p>
 
 <h1 align="center">CapDraft TTS</h1>
 
 <p align="center">
-  Tạo giọng đọc từ caption và gắn audio trực tiếp vào project CapCut.<br>
-  Không copy project, không kéo thả audio thủ công.
+  <strong>English</strong> ·
+  <a href="docs/README.vi.md">Tiếng Việt</a> ·
+  <a href="docs/README.zh.md">中文</a> ·
+  <a href="docs/README.ja.md">日本語</a>
 </p>
 
-## Tính năng
+<p align="center">
+  Generate <strong>120+ CapCut TTS voices for free</strong> from your project captions<br>
+  and attach the audio back into the same CapCut draft.
+</p>
 
-- Đọc caption trực tiếp từ `draft_content.json`.
-- Lọc, tìm kiếm và chọn caption cần tạo giọng đọc.
-- Hỗ trợ 129 giọng, thay đổi tốc độ và giữ/đổi cao độ.
-- Cập nhật `Voice.json` online từ GitHub để thêm/sửa giọng mà không cần rebuild app.
-- Cache audio, xử lý song song và hủy tác vụ an toàn.
-- Tự căn đầu audio theo frame, kiểm tra tính toàn vẹn trước khi ghi.
-- Backup và atomic save; rollback nếu quá trình cập nhật gặp lỗi.
-- Giao diện Fluent dark mode nhất quán cùng trang Settings lưu cấu hình tự động.
+<p align="center">
+  <a href="https://github.com/KhoaDayy/CapDraft-TTS/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/KhoaDayy/CapDraft-TTS?label=release"></a>
+  <a href="https://github.com/KhoaDayy/CapDraft-TTS/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/KhoaDayy/CapDraft-TTS?style=social"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/KhoaDayy/CapDraft-TTS"></a>
+  <a href="https://www.python.org/"><img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-blue"></a>
+  <a href="#requirements"><img alt="Platform" src="https://img.shields.io/badge/platform-Windows-0078D6"></a>
+</p>
 
-## Yêu cầu
+<p align="center">
+  <img alt="capcut" src="https://img.shields.io/badge/capcut-TTS-black">
+  <img alt="text-to-speech" src="https://img.shields.io/badge/text--to--speech-120%2B%20voices-success">
+  <img alt="free" src="https://img.shields.io/badge/TTS-free%20%28no%20paid%20API%29-brightgreen">
+  <img alt="desktop" src="https://img.shields.io/badge/desktop-PySide6-orange">
+  <img alt="video" src="https://img.shields.io/badge/video-editing-lightgrey">
+</p>
+
+---
+
+## Why this exists
+
+CapCut already has many TTS voices. CapDraft TTS lets you use them on your captions **without paid third-party TTS services**.
+
+- **120+ CapCut voices** (live catalog from GitHub)
+- **No TTS fee** — uses CapCut's own TTS path via a local CapCut TTS API + your `device.json`
+- Reads captions from your CapCut project and writes audio back into the same timeline
+- No project copy, no manual drag-and-drop of audio files
+
+> You still need CapCut Desktop, a working CapCut TTS API setup, and internet. “Free” means no extra paid voice API (ElevenLabs, Azure, etc.).
+
+## Features
+
+- Open a CapCut project folder or `draft_content.json`
+- Caption list with search, select-all, empty / no-TTS / error filters
+- Online voice catalog (~120+ voices) with language filter + search
+- TTS rate, CapCut clip speed, pitch mode (follow speed / preserve pitch)
+- Replace existing TTS or skip captions that already have TTS
+- Optional audio cache and native CapCut head-alignment
+- Parallel generation, cancel, progress log
+- Backup + atomic save with rollback on failed write
+- Fluent dark-mode UI (Vietnamese UI text)
+
+## Requirements
 
 - Windows 10/11
-- Python 3.10+
-- CapCut Desktop và một project đã có caption
-- FFmpeg/FFprobe trong `PATH`
-- CapCut TTS API kèm `device.json`
+- CapCut Desktop + a project that already has captions
+- Local CapCut TTS API install with a valid `device.json`
+- FFmpeg / FFprobe (`ffmpeg` / `ffprobe` on `PATH`, or set paths in Settings)
+- Internet (voice catalog + CapCut TTS requests)
 
-## Cài đặt
+Source runs also need Python 3.10+.
 
-### Bản Windows dựng sẵn
+## Install
 
-Tải file `CapDraft-TTS-*-windows-x64.zip` trong mục [Releases](https://github.com/KhoaDayy/CapDraft-TTS/releases), giải nén và chạy `CapDraft-TTS.exe`.
+### Prebuilt (recommended)
 
-### Chạy từ source
+1. Download `CapDraft-TTS-v1.0.1-windows-x64.zip` from [Releases](https://github.com/KhoaDayy/CapDraft-TTS/releases)
+2. Unzip and run `CapDraft-TTS.exe`
+3. Open **Settings** (gear) and set:
+   - CapCut TTS API folder
+   - `device.json`
+   - FFmpeg / FFprobe if not on `PATH`
 
 ```powershell
-git clone <repository-url>
-cd "CapDraft TTS"
+Get-FileHash .\CapDraft-TTS-v1.0.1-windows-x64.zip -Algorithm SHA256
+# compare with the .sha256 file from the release
+```
+
+### From source
+
+```powershell
+git clone https://github.com/KhoaDayy/CapDraft-TTS.git
+cd CapDraft-TTS
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
@@ -46,61 +95,92 @@ Copy-Item config.example.json config.json
 python main.py
 ```
 
-Mở nút **Cài đặt** (biểu tượng bánh răng ở góc dưới), sau đó chọn thư mục CapCut TTS API, `device.json`, `Voice.json` và đường dẫn FFmpeg nếu chưa có trong `PATH`.
+## Usage
 
-## Cách dùng
-
-1. Chọn thư mục project CapCut hoặc tệp `draft_content.json`.
-2. Kiểm tra danh sách caption, chọn ngôn ngữ và giọng đọc.
-3. Tùy chỉnh tốc độ, cao độ, cache và căn chỉnh nếu cần.
-4. Chọn caption cần xử lý rồi nhấn **Tạo và gắn TTS**.
-5. Mở lại project trong CapCut để kiểm tra timeline.
+1. **Chọn project** → CapCut project folder or `draft_content.json`
+2. Review / filter captions
+3. Pick language + voice (120+ CapCut voices from the online catalog)
+4. Set rate, clip speed, pitch, and existing-TTS policy
+5. Select captions → **Tạo và gắn TTS**
+6. Close the project in CapCut before write, then reopen CapCut to check the timeline
 
 > [!IMPORTANT]
-> Hãy đóng project trong CapCut trước khi ghi và giữ một bản sao độc lập cho dữ liệu quan trọng. Ứng dụng tự tạo backup, nhưng không thay thế chiến lược sao lưu của bạn.
+> Close the CapCut project before writing. CapDraft TTS keeps local backups, but keep your own backup of important drafts.
 
-## Cấu hình
-
-`config.json` là cấu hình theo máy và được Git bỏ qua. Hãy bắt đầu từ [`config.example.json`](config.example.json). Các nhóm chính gồm:
-
-- `capcut_tts_path`, `device_json_path`, `voice_catalog_path`: nguồn TTS và giọng.
-- `voice_catalog_update_url`: URL raw GitHub dùng để cập nhật `Voice.json` trong app.
-- `ffmpeg_path`, `ffprobe_path`: công cụ media.
-- `tts_chunk_size`, `tts_parallel_chunks`, `tts_download_workers`: hiệu năng.
-- `max_backups`: số backup tối đa giữ lại.
-
-## Cập nhật giọng đọc online
-
-App mặc định tải danh mục giọng từ:
+## How free CapCut TTS works here
 
 ```text
-https://raw.githubusercontent.com/KhoaDayy/CapDraft-TTS/main/Voice.json
+CapCut project captions
+        │
+        ▼
+ CapDraft TTS  ──►  local CapCut TTS API + device.json  ──►  CapCut TTS voices
+        │
+        ▼
+ audio attached back into the same draft timeline
 ```
 
-Khi muốn thêm/sửa giọng, chỉ cần cập nhật `Voice.json` trên nhánh `main` của GitHub. Trong app, mở **Cài đặt → Giọng đọc → Cập nhật từ GitHub**. App sẽ tải file mới, kiểm tra schema, backup file cũ và reload danh sách giọng ngay.
+- Voices come from CapCut’s catalog (listed online as `Voice.json` on this repo)
+- Generation goes through your CapCut TTS API setup, **not** a paid cloud TTS provider
+- The app does not sell voices or charge per character
 
-## Kiểm thử
+## Voice catalog
+
+Loaded **live in memory** from:
+
+```text
+https://raw.githubusercontent.com/KhoaDayy/CapDraft-TTS/refs/heads/main/Voice.json
+```
+
+- No local catalog file is required in the app package
+- Change URL or click **Tải lại danh sách** in **Settings → Giọng đọc**
+- To add/edit voices for everyone, update `Voice.json` on `main`
+
+## Configuration
+
+`config.json` is machine-local (gitignored). Copy from [`config.example.json`](config.example.json).
+
+| Key | Purpose |
+| --- | --- |
+| `capcut_tts_path` | CapCut TTS API folder |
+| `device_json_path` | `device.json` for CapCut TTS |
+| `voice_catalog_url` | Raw URL of the voice list JSON |
+| `ffmpeg_path` / `ffprobe_path` | Media tools |
+| `tts_chunk_size` | Captions per batch |
+| `tts_parallel_chunks` | Parallel batches |
+| `tts_download_workers` | Parallel audio downloads |
+| `tts_poll_interval_sec` | Poll interval while waiting for TTS |
+| `cache_path` | Generated audio cache |
+| `max_backups` | Draft backups to keep |
+
+## Project layout
+
+```text
+main.py                 App entry
+core/config.py          Config
+core/capcut_tts.py      CapCut TTS API wrapper
+core/capcut_project/    Read / patch / validate CapCut drafts
+ui/                     Desktop UI
+tests/                  Tests
+Voice.json              Public voice list (fetched by URL)
+docs/                   Translated READMEs
+```
+
+## Development
 
 ```powershell
 python -m unittest discover -s tests -v
+.\build-release.ps1 -Version 1.0.1
 ```
 
-## Kiến trúc
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CHANGELOG.md`](CHANGELOG.md).
 
-```text
-main.py                         Điểm khởi chạy desktop app
-core/config.py                  Cấu hình persistent
-core/capcut_project/            Đọc, patch, validate và ghi project
-core/capcut_tts.py              Tạo và tải audio TTS
-ui/main_window.py               Workbench chính
-ui/settings_dialog.py           Trang Settings
-tests/                           Core + reliability tests
-```
+## Star history
 
-## Đóng góp
+[![Star History Chart](https://api.star-history.com/svg?repos=KhoaDayy/CapDraft-TTS&type=Date)](https://star-history.com/#KhoaDayy/CapDraft-TTS&Date)
 
-Xem [`CONTRIBUTING.md`](CONTRIBUTING.md) trước khi mở issue hoặc pull request.
+## License / legal
 
-## Lưu ý pháp lý
-
-Đây là dự án độc lập, không liên kết hay được bảo trợ bởi CapCut/ByteDance. Người dùng tự chịu trách nhiệm tuân thủ điều khoản dịch vụ, quyền sử dụng giọng đọc và bản quyền nội dung. QFluentWidgets dùng GPLv3 cho mục đích phi thương mại; hãy kiểm tra giấy phép phù hợp trước khi phân phối thương mại.
+- [`LICENSE`](LICENSE) (Apache-2.0)
+- Independent project — **not** affiliated with CapCut / ByteDance
+- You are responsible for CapCut terms, device/account rules, and content rights
+- QFluentWidgets is GPLv3 for non-commercial use; review licenses before commercial redistribution

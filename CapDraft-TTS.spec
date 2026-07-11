@@ -2,7 +2,7 @@
 
 from PyInstaller.utils.hooks import collect_data_files
 
-datas = [("Voice.json", ".")]
+datas = []
 datas += collect_data_files("qfluentwidgets")
 
 a = Analysis(

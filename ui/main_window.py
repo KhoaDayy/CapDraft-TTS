@@ -667,10 +667,10 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     def _load_voices(self):
         try:
-            cat = self.service.get_voice_catalog()
+            cat = self.service.get_voice_catalog(reload=True)
             self._voices = cat.voices
         except Exception as e:
-            self._append_log("ERROR", f"Không load được Voice.json: {e}")
+            self._append_log("ERROR", f"Không load được danh sách giọng: {e}")
             self._voices = []
             return
         self.cmb_lang.blockSignals(True)

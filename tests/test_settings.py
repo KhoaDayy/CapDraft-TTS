@@ -19,7 +19,7 @@ class TestSettingsDialog(unittest.TestCase):
         dialog = SettingsDialog()
         self.assertTrue(dialog.capcut_tts_path.text())
         self.assertEqual(dialog.findChild(QTabWidget).count(), 3)
-        self.assertIn("githubusercontent.com", dialog.voice_catalog_update_url.text())
+        self.assertIn("githubusercontent.com", dialog.voice_catalog_url.text())
         self.assertGreaterEqual(dialog.chunk_size.value(), 1)
         dialog.close()
 
