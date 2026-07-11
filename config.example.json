@@ -1,0 +1,20 @@
+{
+  "ffprobe_path": "ffprobe",
+  "ffmpeg_path": "ffmpeg",
+  "capcut_tts_path": "external/capcut-tts-api",
+  "device_json_path": "external/capcut-tts-api/device.json",
+  "voice_catalog_path": "Voice.json",
+  "default_voice": "BV074_streaming",
+  "default_resource_id": "7102355709945188865",
+  "default_rate": 1.0,
+  "default_clip_speed": 1.0,
+  "tts_chunk_size": 25,
+  "tts_parallel_chunks": 4,
+  "tts_poll_interval_sec": 1.0,
+  "tts_download_workers": 8,
+  "cache_path": "cache",
+  "project_output_path": "projects",
+  "max_backups": 10,
+  "theme": "auto",
+  "accent_color": "#0EA5A4"
+}

@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Per-machine settings and secrets
+config.json
+device.json
+.env
+.env.*
+!.env.example
+
+# Runtime data
+cache/
+logs/
+backups/
+projects/
+screenshots/
+textReading/
+*.log
+*.part
+
+# Local CapCut drafts and generated manifests
+draft_content.json
+tts_generation_manifest.json
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local agent tooling
+.agents/
+.claude/
+.codegraph/
+_analysis/
+0710/
+external/VectCutAPI/
