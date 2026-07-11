@@ -38,13 +38,13 @@
 
 CapCut already has many TTS voices. CapDraft TTS lets you use them on your captions **without paid third-party TTS services**.
 
-- **120+ CapCut voices** (live catalog from GitHub)
-- **No TTS fee** — uses CapCut's own TTS path via a local CapCut TTS API + your `device.json`
+- **120+ CapCut voices**
+- **No extra paid voice API**
 - Reads captions from your CapCut project and writes audio back into the same timeline
 - Exports project captions directly to a standard `.srt` subtitle file
 - No project copy, no manual drag-and-drop of audio files
 
-> You still need CapCut Desktop, a working CapCut TTS API setup, and internet. “Free” means no extra paid voice API (ElevenLabs, Azure, etc.).
+> You still need CapCut Desktop and internet. “Free” means the app does not require a separate paid TTS service.
 
 ## Features
 
@@ -62,9 +62,8 @@ CapCut already has many TTS voices. CapDraft TTS lets you use them on your capti
 
 - Windows 10/11
 - CapCut Desktop + a project that already has captions
-- Local CapCut TTS API install with a valid `device.json`
 - FFmpeg / FFprobe (`ffmpeg` / `ffprobe` on `PATH`, or set paths in Settings)
-- Internet (voice catalog + CapCut TTS requests)
+- Internet connection
 
 Source runs also need Python 3.10+.
 
@@ -74,10 +73,7 @@ Source runs also need Python 3.10+.
 
 1. Download `CapDraft-TTS-v1.0.2-windows-x64.zip` from [Releases](https://github.com/KhoaDayy/CapDraft-TTS/releases)
 2. Unzip and run `CapDraft-TTS.exe`
-3. Open **Settings** (gear) and set:
-   - CapCut TTS API folder
-   - `device.json`
-   - FFmpeg / FFprobe if not on `PATH`
+3. If FFmpeg / FFprobe is not on `PATH`, set its location in **Settings**.
 
 ```powershell
 Get-FileHash .\CapDraft-TTS-v1.0.2-windows-x64.zip -Algorithm SHA256
@@ -108,64 +104,6 @@ python main.py
 
 > [!IMPORTANT]
 > Close the CapCut project before writing. CapDraft TTS keeps local backups, but keep your own backup of important drafts.
-
-## How free CapCut TTS works here
-
-```text
-CapCut project captions
-        │
-        ▼
- CapDraft TTS  ──►  local CapCut TTS API + device.json  ──►  CapCut TTS voices
-        │
-        ▼
- audio attached back into the same draft timeline
-```
-
-- Voices come from CapCut’s catalog (listed online as `Voice.json` on this repo)
-- Generation goes through your CapCut TTS API setup, **not** a paid cloud TTS provider
-- The app does not sell voices or charge per character
-
-## Voice catalog
-
-Loaded **live in memory** from:
-
-```text
-https://raw.githubusercontent.com/KhoaDayy/CapDraft-TTS/refs/heads/main/Voice.json
-```
-
-- No local catalog file is required in the app package
-- Change URL or click **Tải lại danh sách** in **Settings → Giọng đọc**
-- To add/edit voices for everyone, update `Voice.json` on `main`
-
-## Configuration
-
-`config.json` is machine-local (gitignored). Copy from [`config.example.json`](config.example.json).
-
-| Key | Purpose |
-| --- | --- |
-| `capcut_tts_path` | CapCut TTS API folder |
-| `device_json_path` | `device.json` for CapCut TTS |
-| `voice_catalog_url` | Raw URL of the voice list JSON |
-| `ffmpeg_path` / `ffprobe_path` | Media tools |
-| `tts_chunk_size` | Captions per batch |
-| `tts_parallel_chunks` | Parallel batches |
-| `tts_download_workers` | Parallel audio downloads |
-| `tts_poll_interval_sec` | Poll interval while waiting for TTS |
-| `cache_path` | Generated audio cache |
-| `max_backups` | Draft backups to keep |
-
-## Project layout
-
-```text
-main.py                 App entry
-core/config.py          Config
-core/capcut_tts.py      CapCut TTS API wrapper
-core/capcut_project/    Read / patch / validate CapCut drafts
-ui/                     Desktop UI
-tests/                  Tests
-Voice.json              Public voice list (fetched by URL)
-docs/                   Translated READMEs
-```
 
 ## Development
 
