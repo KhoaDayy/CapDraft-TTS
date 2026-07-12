@@ -7,7 +7,7 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtCore import Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QColor, QFont, QPalette, QTextCursor
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -175,6 +175,12 @@ class MainWindow(QMainWindow):
         self._closing = False
         self._ui_state = UiState.IDLE_NO_PROJECT
         self._advanced_open = False
+        # Batch per-item table updates so 2k captions don't flood the UI thread.
+        self._pending_item_updates: dict[int, dict] = {}
+        self._item_flush_timer = QTimer(self)
+        self._item_flush_timer.setSingleShot(True)
+        self._item_flush_timer.setInterval(80)
+        self._item_flush_timer.timeout.connect(self._flush_item_updates)
         self._init_ui()
         self._connect_ui_signals()
         self._apply_ui_state(UiState.IDLE_NO_PROJECT)
@@ -1109,27 +1115,46 @@ class MainWindow(QMainWindow):
     def _on_item(self, idx: int, res: dict):
         if self._closing:
             return
-        row = self._row_by_index.get(int(idx))
-        if row is None:
+        # Coalesce rapid worker signals; flush on a short timer.
+        self._pending_item_updates[int(idx)] = res
+        if not self._item_flush_timer.isActive():
+            self._item_flush_timer.start()
+
+    def _flush_item_updates(self):
+        if self._closing or not self._pending_item_updates:
+            self._pending_item_updates.clear()
             return
-        status = res.get("status", "")
-        dur = float(res.get("duration") or 0.0)
-        if status == "Cached":
-            self.table.item(row, 6).setText("Cache")
-        elif status == "Failed":
-            self.table.item(row, 6).setText("Lỗi")
-            self.table.item(row, 8).setText(str(res.get("error") or ""))
-        else:
-            self.table.item(row, 6).setText("Đã tạo")
-        if dur > 0:
-            self.table.item(row, 7).setText(f"{dur:.2f}s")
-        if self.chk_only_errors.isChecked():
-            self._filter_table()
+        pending = self._pending_item_updates
+        self._pending_item_updates = {}
+        self.table.setUpdatesEnabled(False)
+        try:
+            need_filter = self.chk_only_errors.isChecked()
+            for idx, res in pending.items():
+                row = self._row_by_index.get(int(idx))
+                if row is None:
+                    continue
+                status = res.get("status", "")
+                dur = float(res.get("duration") or 0.0)
+                if status == "Cached":
+                    self.table.item(row, 6).setText("Cache")
+                elif status == "Failed":
+                    self.table.item(row, 6).setText("Lỗi")
+                    self.table.item(row, 8).setText(str(res.get("error") or ""))
+                else:
+                    self.table.item(row, 6).setText("Đã tạo")
+                if dur > 0:
+                    self.table.item(row, 7).setText(f"{dur:.2f}s")
+            if need_filter:
+                self._filter_table()
+        finally:
+            self.table.setUpdatesEnabled(True)
 
     def _on_finished(self, result: GenerationResult):
         if self._closing:
             self.worker = None
             return
+        self._item_flush_timer.stop()
+        self._flush_item_updates()
         cancelled = bool((result.extra or {}).get("cancelled")) or any(
             "cancel" in (e or "").lower() for e in (result.errors or [])
         )
@@ -1173,6 +1198,8 @@ class MainWindow(QMainWindow):
         if self._closing:
             self.worker = None
             return
+        self._item_flush_timer.stop()
+        self._flush_item_updates()
         ready = UiState.IDLE_READY if self.ed_project.text().strip() else UiState.IDLE_NO_PROJECT
         self._apply_ui_state(ready)
         self.btn_generate.setText("Tạo và gắn TTS")

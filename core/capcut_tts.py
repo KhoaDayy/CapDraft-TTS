@@ -117,8 +117,10 @@ class CapCutTtsWrapper:
         self.config = AppConfig()
         self.project_name = project_name
         self.cache = TtsCache()
+        self._client_mod = None
 
     def _get_python_executable(self) -> str:
+        # Dev only — frozen builds never re-exec the app binary as a Python interpreter.
         return sys.executable
 
     def _get_client_path(self) -> str:
@@ -126,6 +128,95 @@ class CapCutTtsWrapper:
 
     def _get_device_json_path(self) -> str:
         return os.path.abspath(self.config.device_json_path)
+
+    def _load_client_module(self):
+        """Import capcut_common_task_client from the configured path (works frozen + dev)."""
+        if self._client_mod is not None:
+            return self._client_mod
+        client_py = Path(self._get_client_path())
+        if not client_py.is_file():
+            raise FileNotFoundError(f"capcut_common_task_client.py not found at: {client_py}")
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("capcut_common_task_client", str(client_py))
+        if spec is None or spec.loader is None:
+            raise ImportError(f"Cannot load CapCut TTS client from {client_py}")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self._client_mod = mod
+        return mod
+
+    def _call_common_task(
+        self,
+        mode: str,
+        *,
+        device_json: str | None = None,
+        texts: list[str] | None = None,
+        voice: str | None = None,
+        resource_id: str | None = None,
+        rate: float | str | None = None,
+        task_id: str | None = None,
+        token: str | None = None,
+        is_cancelled_callback: Optional[Callable[[], bool]] = None,
+    ) -> subprocess.CompletedProcess:
+        """In-process CapCut common_task call (no Python subprocess).
+
+        Frozen builds cannot run `sys.executable script.py` — the exe is not an
+        interpreter. Calling the client module directly also avoids process spawn
+        overhead on large batches.
+        """
+        if is_cancelled_callback and is_cancelled_callback():
+            raise CancelledError("Cancelled by user")
+
+        client = self._load_client_module()
+        if getattr(client, "requests", None) is None:
+            raise RuntimeError("CapCut TTS client requires the 'requests' package")
+
+        class _Args:
+            pass
+
+        args = _Args()
+        args.mode = mode
+        args.device_json = device_json
+        args.text = list(texts or [])
+        args.text_file = None
+        args.voice = voice or self.config.default_voice
+        args.resource_id = resource_id or self.config.default_resource_id
+        args.rate = str(rate if rate is not None else self.config.default_rate)
+        args.task_id = task_id
+        args.token = token
+        args.bind_id = ""
+        args.audio_vid = None
+        args.audio_md5 = None
+        args.audio_file = None
+        args.duration_ms = None
+        args.language = "zh-CN"
+        args.translation_language = "vi-VN"
+        args.use_translation = False
+        args.dry_run = False
+        args.out = None
+
+        url, headers, body_text = client.build_request(args)
+        if is_cancelled_callback and is_cancelled_callback():
+            raise CancelledError("Cancelled by user")
+
+        resp = client.requests.post(
+            url,
+            headers=headers,
+            data=body_text.encode("utf-8"),
+            timeout=60,
+        )
+        if is_cancelled_callback and is_cancelled_callback():
+            raise CancelledError("Cancelled by user")
+
+        # Match CLI stdout: "<status>\n<body>"
+        stdout = f"{resp.status_code}\n{resp.text}"
+        return subprocess.CompletedProcess(
+            args=[mode],
+            returncode=0 if resp.status_code == 200 else 1,
+            stdout=stdout,
+            stderr="",
+        )
 
     @staticmethod
     def _generate_numeric_id(length: int = 19) -> str:
@@ -251,11 +342,6 @@ class CapCutTtsWrapper:
         resource_id = resource_id or self.config.default_resource_id
         rate = rate if rate is not None else self.config.default_rate
 
-        py_exe = self._get_python_executable()
-        client_py = self._get_client_path()
-        if not os.path.exists(client_py):
-            raise FileNotFoundError(f"capcut_common_task_client.py not found at: {client_py}")
-
         results: Dict[int, Dict[str, Any]] = {}
         pending: list[dict] = []
         cached_count = 0
@@ -298,6 +384,9 @@ class CapCutTtsWrapper:
 
         if not pending:
             return results
+
+        # Fail fast once we know network work is needed (missing client / frozen path).
+        self._load_client_module()
 
         # Chunk large batches to avoid rate limiting without duplicating the
         # pending list in memory for large projects.
@@ -358,8 +447,6 @@ class CapCutTtsWrapper:
                         voice,
                         resource_id,
                         rate,
-                        py_exe,
-                        client_py,
                         _make_chunk_progress(chunk_idx, chunk_count),
                         is_cancelled_callback,
                         item_completed_callback,
@@ -424,7 +511,7 @@ class CapCutTtsWrapper:
 
             logger.info(f"Processing chunk {chunk_idx + 1}/{chunk_count} ({len(chunk)} items)")
             chunk_results = self._process_single_chunk(
-                chunk, voice, resource_id, rate, py_exe, client_py,
+                chunk, voice, resource_id, rate,
                 progress_callback, is_cancelled_callback, item_completed_callback,
                 items, results
             )
@@ -436,7 +523,6 @@ class CapCutTtsWrapper:
         return results
 
     def _process_single_chunk(self, pending: list[dict], voice: str, resource_id: str, rate: float,
-                              py_exe: str, client_py: str,
                               progress_callback: Optional[Callable[[str, float], None]],
                               is_cancelled_callback: Optional[Callable[[], bool]],
                               item_completed_callback: Optional[Callable[[int, Dict[str, Any]], None]],
@@ -444,35 +530,37 @@ class CapCutTtsWrapper:
         """Process a single chunk of TTS items."""
         results: Dict[int, Dict[str, Any]] = {}
         temp_device_path = None
-        env = self._subprocess_env()
         chunk_started_at = time.perf_counter()
 
         try:
             temp_device_path, rand_id = self._create_temp_device_json()
-            cmd_new = [py_exe, client_py, "tts-new", "--device-json", str(temp_device_path), "--voice", voice,
-                       "--resource-id", resource_id, "--rate", str(rate)]
-            for item in pending:
-                cmd_new.extend(["--text", item["text"]])
+            texts = [item["text"] for item in pending]
 
             logger.info("Submitting %s TTS tasks with randomized device ID: %s", len(pending), rand_id)
             if progress_callback:
                 progress_callback("Submitting", 0.1)
 
             submit_started_at = time.perf_counter()
-            logger.info(
-                "BEFORE tts-new subprocess · items=%s · cmd=%s",
-                len(pending),
-                " ".join(cmd_new[:5]),
-            )
+            logger.info("BEFORE tts-new · items=%s · in-process", len(pending))
             try:
-                res = self._run_client(
-                    cmd_new, env, "TTS submission", is_cancelled_callback=is_cancelled_callback
+                res = self._call_common_task(
+                    "tts-new",
+                    device_json=str(temp_device_path),
+                    texts=texts,
+                    voice=voice,
+                    resource_id=resource_id,
+                    rate=rate,
+                    is_cancelled_callback=is_cancelled_callback,
                 )
             except CancelledError:
                 logger.info("TTS chunk submit cancelled by user.")
                 return results
+            if res.returncode != 0:
+                raise RuntimeError(
+                    f"TTS submission failed. stdout={res.stdout!r} stderr={res.stderr!r}"
+                )
             logger.info(
-                "AFTER tts-new subprocess · returncode=%s · elapsed=%.2fs · items=%s",
+                "AFTER tts-new · returncode=%s · elapsed=%.2fs · items=%s",
                 res.returncode,
                 time.perf_counter() - submit_started_at,
                 len(pending),
@@ -516,9 +604,6 @@ class CapCutTtsWrapper:
 
                 try:
                     query_result = self._query_one_task(
-                        py_exe,
-                        client_py,
-                        env,
                         task_id,
                         token,
                         is_cancelled_callback=is_cancelled_callback,
@@ -727,21 +812,20 @@ class CapCutTtsWrapper:
 
     def _query_one_task(
         self,
-        py_exe: str,
-        client_py: str,
-        env: dict,
         task_id: str,
         token: str,
         is_cancelled_callback: Optional[Callable[[], bool]] = None,
     ) -> Optional[list[dict]]:
-        cmd_query = [py_exe, client_py, "tts-query", "--task-id", task_id, "--token", token]
         t0 = time.perf_counter()
-        logger.info("BEFORE tts-query subprocess · task_id=%s", task_id)
-        res_q = self._run_client(
-            cmd_query, env, "TTS query", check=False, is_cancelled_callback=is_cancelled_callback
+        logger.info("BEFORE tts-query · task_id=%s · in-process", task_id)
+        res_q = self._call_common_task(
+            "tts-query",
+            task_id=task_id,
+            token=token,
+            is_cancelled_callback=is_cancelled_callback,
         )
         logger.info(
-            "AFTER tts-query subprocess · returncode=%s · elapsed=%.2fs · task_id=%s",
+            "AFTER tts-query · returncode=%s · elapsed=%.2fs · task_id=%s",
             res_q.returncode,
             time.perf_counter() - t0,
             task_id,

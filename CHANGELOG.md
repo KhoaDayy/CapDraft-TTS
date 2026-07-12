@@ -7,6 +7,9 @@
 - Chủ đề **Sáng** áp dụng đúng palette sáng cho toàn app (trước đó chỉ đổi control Fluent, nền/table vẫn tối).
 - Cân lại layout **Cài đặt giọng đọc**: label căn phải, cột voice rộng hơn, `TTS đã tồn tại` không còn nửa hàng trống.
 - Panel nâng cao và toolbar caption khoảng cách gọn hơn.
+- Bundle `external/capcut-tts-api` trong bản Windows (trước đó thiếu `capcut_common_task_client.py` → generate fail).
+- Gọi CapCut TTS API **in-process** thay vì `sys.executable script.py` (frozen exe không phải Python interpreter).
+- Batch cập nhật bảng caption khi generate (~80ms) để project 2k+ dòng không làm UI “Not Responding”.
 
 ## 1.1.1 — 2026-07-11
 

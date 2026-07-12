@@ -10,6 +10,8 @@ venv/
 # Per-machine settings and secrets
 config.json
 device.json
+# Keep the packaged default device template tracked
+!external/capcut-tts-api/device.json
 .env
 .env.*
 !.env.example

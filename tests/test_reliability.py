@@ -163,7 +163,7 @@ class TestParallelBatchCompletion(unittest.TestCase):
         items = [{"index": i, "text": f"t{i}"} for i in range(1, 5)]  # 2 chunks of 2
         t0 = time.perf_counter()
         with patch.object(wrapper.config, "get", side_effect=config_get):
-            with patch.object(wrapper, "_get_client_path", return_value=str(ROOT / "tests" / "test_reliability.py")):
+            with patch.object(wrapper, "_load_client_module", return_value=object()):
                 with patch.object(wrapper, "_process_single_chunk", side_effect=fake_chunk):
                     with patch.object(wrapper.cache, "get_cached_file", return_value=(None, None)):
                         results = wrapper.generate_tts_batch(
@@ -213,7 +213,7 @@ class TestParallelBatchCancel(unittest.TestCase):
         items = [{"index": i, "text": f"t{i}"} for i in range(1, 7)]
         t0 = time.perf_counter()
         with patch.object(wrapper.config, "get", side_effect=config_get):
-            with patch.object(wrapper, "_get_client_path", return_value=str(ROOT / "tests" / "test_reliability.py")):
+            with patch.object(wrapper, "_load_client_module", return_value=object()):
                 with patch.object(wrapper, "_process_single_chunk", side_effect=slow_chunk):
                     with patch.object(wrapper.cache, "get_cached_file", return_value=(None, None)):
                         results = wrapper.generate_tts_batch(

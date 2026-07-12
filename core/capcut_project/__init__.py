@@ -1,4 +1,8 @@
-"""CapCut project read/patch/export for TTS attachment."""
+"""CapCut project read/patch/export for TTS attachment.
+
+Keep this package init light: importing a leaf module (e.g. voice_catalog
+from AppConfig) must not pull CapCutTtsWrapper and create an import cycle.
+"""
 
 from .models import (
     CaptionRow,
@@ -13,8 +17,6 @@ from .models import (
 )
 from .voice_catalog import DEFAULT_VOICE_CATALOG_URL, VoiceCatalog, VoiceCatalogError
 from .voice_catalog_updater import VoiceCatalogUpdateError, VoiceCatalogUpdateResult
-from .draft_reader import DraftReader
-from .tts_project_service import CapCutProjectTtsService
 
 __all__ = [
     "CaptionRow",
@@ -34,3 +36,16 @@ __all__ = [
     "DraftReader",
     "CapCutProjectTtsService",
 ]
+
+
+def __getattr__(name: str):
+    # Lazy heavy imports — avoid config ↔ tts_project_service cycle.
+    if name == "DraftReader":
+        from .draft_reader import DraftReader
+
+        return DraftReader
+    if name == "CapCutProjectTtsService":
+        from .tts_project_service import CapCutProjectTtsService
+
+        return CapCutProjectTtsService
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

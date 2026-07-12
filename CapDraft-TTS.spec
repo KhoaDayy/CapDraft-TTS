@@ -4,6 +4,11 @@ from PyInstaller.utils.hooks import collect_data_files
 
 datas = []
 datas += collect_data_files("qfluentwidgets")
+# CapCut TTS HTTP client + device defaults (resolved via APP_ROOT/external/...)
+datas += [
+    ("external/capcut-tts-api/capcut_common_task_client.py", "external/capcut-tts-api"),
+    ("external/capcut-tts-api/device.json", "external/capcut-tts-api"),
+]
 
 a = Analysis(
     ["main.py"],
