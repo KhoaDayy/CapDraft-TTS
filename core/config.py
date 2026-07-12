@@ -12,11 +12,31 @@ from core.capcut_project.voice_catalog import DEFAULT_VOICE_CATALOG_URL
 from core.i18n import normalize_language
 from core.preferences import normalize_theme_mode
 
-APP_ROOT = (
-    Path(sys.executable).resolve().parent
-    if getattr(sys, "frozen", False)
-    else Path(__file__).resolve().parents[1]
-)
+def _app_root() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parents[1]
+
+
+APP_ROOT = _app_root()
+
+
+def _resource_roots() -> list[Path]:
+    """Roots that may hold bundled assets.
+
+    Writable data (config/cache/projects) lives next to the exe. PyInstaller
+    onedir v6+ puts datas under ``_internal/`` (and older builds under
+    ``sys._MEIPASS``). Dev uses the repo root for both.
+    """
+    roots = [APP_ROOT]
+    if getattr(sys, "frozen", False):
+        internal = APP_ROOT / "_internal"
+        if internal.is_dir():
+            roots.append(internal)
+        meipass = getattr(sys, "_MEIPASS", None)
+        if meipass:
+            roots.append(Path(meipass))
+    return roots
 
 DEFAULT_CONFIG = {
     "ffprobe_path": "ffprobe",
@@ -99,6 +119,11 @@ class AppConfig:
         path = Path(path_value)
         if path.is_absolute():
             return path
+        # Prefer existing resource among frozen/dev roots; else default next to app.
+        for root in _resource_roots():
+            candidate = root / path
+            if candidate.exists():
+                return candidate
         return self.app_root / path
 
     @property

@@ -51,6 +51,15 @@ class TestAppearancePreferences(unittest.TestCase):
         finally:
             cfg.set("theme_mode", previous)
 
+    def test_resolve_app_path_finds_bundled_capcut_client(self):
+        from pathlib import Path
+        from core.config import AppConfig
+
+        cfg = AppConfig()
+        client = Path(cfg.capcut_tts_path) / "capcut_common_task_client.py"
+        self.assertTrue(client.is_file(), f"missing client at {client}")
+        self.assertTrue(Path(cfg.device_json_path).is_file())
+
 
 if __name__ == "__main__":
     unittest.main()
