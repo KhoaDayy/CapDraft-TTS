@@ -453,35 +453,85 @@ def _patch_meta(
     folder_name: str,
     source_meta_id: str | None,
 ) -> str:
-    """Patch draft_meta_info.json. Returns meta draft_id used."""
+    """Patch draft_meta_info.json. Returns meta draft_id used.
+
+    CapCut keeps meta.draft_id separate from draft_content.json id (timeline id).
+    root_meta_info.draft_id must match this meta.draft_id.
+    """
     meta_path = project_dir / "draft_meta_info.json"
     meta_id = _new_id()
     if not meta_path.exists():
+        logger.warning("draft_meta_info.json missing in %s — CapCut may not open this project", project_dir)
         return meta_id
     try:
         with open(meta_path, "r", encoding="utf-8-sig") as f:
             meta = json.load(f)
         if not isinstance(meta, dict):
             return meta_id
-        # CapCut: meta.draft_id ≠ content.id (timeline id)
-        if source_meta_id and source_meta_id != content_draft.get("id"):
-            # always fresh meta id for the new project (must not collide with source)
-            meta_id = _new_id()
+        # Always new meta id so CapCut treats this as a distinct project
         meta["draft_id"] = meta_id
-        # Prefer folder name CapCut shows in library
         meta["draft_name"] = folder_name
-        fold = str(project_dir.resolve()).replace("\\", "/")
-        root = str(project_dir.resolve().parent).replace("\\", "/")
+        fold = _norm_fold(project_dir.resolve())
+        root = _norm_fold(project_dir.resolve().parent)
         meta["draft_fold_path"] = fold
         meta["draft_root_path"] = root
         dur = int(content_draft.get("duration") or 0)
         meta["tm_duration"] = dur
         if "duration" in meta:
             meta["duration"] = dur
+        meta["draft_is_invisible"] = False
+        # Relative cover name (CapCut resolves under fold path)
+        if not meta.get("draft_cover"):
+            meta["draft_cover"] = "draft_cover.jpg"
         _write_json(meta_path, meta)
+        # Sanity: meta file must exist and parse after write
+        if not meta_path.is_file() or meta_path.stat().st_size < 10:
+            raise RuntimeError(f"draft_meta_info.json write failed: {meta_path}")
     except Exception as e:
         logger.warning("Could not patch draft_meta_info.json in %s: %s", project_dir, e)
     return meta_id
+
+
+def _capcut_join(fold_fwd: str, filename: str) -> str:
+    """CapCut root_meta uses mixed separators: 'C:/.../folder\\\\file'."""
+    return f"{fold_fwd.rstrip('/')}\\{filename}"
+
+
+def _norm_fold(path: str | Path) -> str:
+    return str(path).replace("\\", "/").rstrip("/")
+
+
+def _purge_stale_root_meta(root_meta: Path) -> int:
+    """Drop all_draft_store rows whose draft_fold_path folder is missing (ghosts)."""
+    if not root_meta.is_file():
+        return 0
+    try:
+        data = json.loads(root_meta.read_text(encoding="utf-8-sig"))
+        if not isinstance(data, dict):
+            return 0
+        store = data.get("all_draft_store")
+        if not isinstance(store, list):
+            return 0
+        kept: list[Any] = []
+        removed = 0
+        for item in store:
+            if not isinstance(item, dict):
+                continue
+            fold = str(item.get("draft_fold_path") or "")
+            if fold and Path(fold).is_dir() and (Path(fold) / "draft_content.json").is_file():
+                kept.append(item)
+            else:
+                removed += 1
+        if removed:
+            data["all_draft_store"] = kept
+            if isinstance(data.get("draft_ids"), int):
+                data["draft_ids"] = len(kept)
+            _write_json(root_meta, data)
+            logger.info("Purged %s stale CapCut root_meta entries", removed)
+        return removed
+    except Exception as e:
+        logger.warning("Could not purge stale root_meta: %s", e)
+        return 0
 
 
 def _register_root_meta(
@@ -497,6 +547,8 @@ def _register_root_meta(
     if not root_meta.is_file():
         return
     try:
+        # Drop ghost rows (missing folders) so CapCut doesn't show unclickable cards
+        _purge_stale_root_meta(root_meta)
         data = json.loads(root_meta.read_text(encoding="utf-8-sig"))
         if not isinstance(data, dict):
             return
@@ -505,14 +557,14 @@ def _register_root_meta(
             store = []
             data["all_draft_store"] = store
 
-        fold = str(project_dir.resolve()).replace("\\", "/")
-        root = str(project_dir.resolve().parent).replace("\\", "/")
+        fold = _norm_fold(project_dir.resolve())
+        root = _norm_fold(project_dir.resolve().parent)
+        src_fold = _norm_fold(source_project_dir.resolve())
 
-        # Template from source entry when possible
+        # Template from source entry when possible (preserves CapCut field set)
         template: dict[str, Any] | None = None
-        src_fold = str(source_project_dir.resolve()).replace("\\", "/")
         for item in store:
-            if isinstance(item, dict) and str(item.get("draft_fold_path") or "").replace("\\", "/") == src_fold:
+            if isinstance(item, dict) and _norm_fold(item.get("draft_fold_path") or "") == src_fold:
                 template = _clone(item)
                 break
         if template is None:
@@ -523,39 +575,53 @@ def _register_root_meta(
         if template is None:
             template = {}
 
+        import time
+
+        now_us = int(time.time() * 1_000_000)
         template["draft_id"] = meta_id
         template["draft_name"] = folder_name
         template["draft_fold_path"] = fold
         template["draft_root_path"] = root
-        template["tm_duration"] = duration_us
+        template["tm_duration"] = int(duration_us)
         if "duration" in template:
-            template["duration"] = duration_us
-        template["draft_json_file"] = f"{fold}/draft_content.json"
-        # Ensure not invisible
+            template["duration"] = int(duration_us)
+        # Match CapCut path style used by working projects
+        template["draft_json_file"] = _capcut_join(fold, "draft_content.json")
+        template["draft_cover"] = _capcut_join(fold, "draft_cover.jpg")
         template["draft_is_invisible"] = False
+        template["streaming_edit_draft_ready"] = True
+        template["tm_draft_removed"] = 0
+        template["tm_draft_modified"] = now_us
+        if not template.get("tm_draft_create"):
+            template["tm_draft_create"] = now_us
 
-        # Replace existing same fold or append
+        # Replace existing same fold / same name or append
         new_store: list[Any] = []
         replaced = False
         for item in store:
             if not isinstance(item, dict):
                 continue
-            if str(item.get("draft_fold_path") or "").replace("\\", "/") == fold:
-                new_store.append(template)
-                replaced = True
-            else:
-                new_store.append(item)
+            item_fold = _norm_fold(item.get("draft_fold_path") or "")
+            item_name = str(item.get("draft_name") or "")
+            if item_fold == fold or item_name == folder_name:
+                if not replaced:
+                    new_store.append(template)
+                    replaced = True
+                # skip duplicates
+                continue
+            new_store.append(item)
         if not replaced:
             new_store.insert(0, template)
         data["all_draft_store"] = new_store
 
+        # CapCut uses draft_ids as an int counter (not a list) on this install
         ids = data.get("draft_ids")
         if isinstance(ids, list):
             if meta_id not in ids:
                 ids.insert(0, meta_id)
             data["draft_ids"] = ids
-        elif isinstance(ids, int):
-            data["draft_ids"] = max(ids, len(new_store))
+        else:
+            data["draft_ids"] = len(new_store)
 
         _write_json(root_meta, data)
         logger.info("Registered %s in root_meta_info.json", folder_name)
@@ -608,6 +674,14 @@ def split_project(
     def prog(p: float, msg: str) -> None:
         if progress_callback:
             progress_callback(p, msg)
+
+    # Remove previous broken parts + ghost CapCut library entries first
+    root_meta = parent / "root_meta_info.json"
+    _purge_stale_root_meta(root_meta)
+    for d in (part1_dir, part2_dir):
+        if d.exists():
+            shutil.rmtree(d)
+            logger.info("Removed previous split output: %s", d)
 
     prog(0.05, "Copying part 1…")
     _copy_project_tree(source_project_dir, part1_dir)
