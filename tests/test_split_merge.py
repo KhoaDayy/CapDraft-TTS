@@ -246,13 +246,42 @@ class TestSliceDraft(unittest.TestCase):
             root = Path(td)
             src = root / "MyProj"
             src.mkdir()
-            (src / "draft_content.json").write_text("{}", encoding="utf-8")
+            draft = _mini_draft(8_000_000)
+            old_id = "OLD-CONTENT-ID"
+            draft["id"] = old_id
+            (src / "draft_content.json").write_text(json.dumps(draft), encoding="utf-8")
             (src / "textReading").mkdir()
             (src / "textReading" / "a.mp3").write_bytes(b"ID3")
-            draft = _mini_draft(8_000_000)
-            (src / "draft_content.json").write_text(
-                json.dumps(draft), encoding="utf-8"
+            # CapCut modern index files CapCut needs to open a project
+            tl = src / "Timelines" / old_id
+            tl.mkdir(parents=True)
+            (tl / "draft_content.json").write_text(json.dumps(draft), encoding="utf-8")
+            project_idx = {
+                "config": {"color_space": -1, "render_index_track_mode_on": False, "use_float_render": False},
+                "create_time": 1,
+                "id": "CONTAINER-ID",
+                "main_timeline_id": old_id,
+                "timelines": [{"create_time": 1, "id": old_id, "is_marked_delete": False, "name": "T1", "update_time": 1}],
+                "update_time": 1,
+                "version": 0,
+            }
+            (src / "Timelines" / "project.json").write_text(json.dumps(project_idx), encoding="utf-8")
+            layout = {"dockItems": [{"dockIndex": 0, "ratio": 1, "timelineIds": [old_id], "timelineNames": ["T1"]}], "layoutOrientation": 1}
+            (src / "timeline_layout.json").write_text(json.dumps(layout), encoding="utf-8")
+            (src / "draft_meta_info.json").write_text(
+                json.dumps(
+                    {
+                        "draft_id": "META-OLD",
+                        "draft_name": "MyProj",
+                        "draft_fold_path": str(src),
+                        "draft_root_path": str(root),
+                        "tm_duration": 8_000_000,
+                        "draft_cover": "draft_cover.jpg",
+                    }
+                ),
+                encoding="utf-8",
             )
+
             res = split_project(
                 source_project_dir=src,
                 source_draft=draft,
@@ -270,6 +299,19 @@ class TestSliceDraft(unittest.TestCase):
             # original untouched
             orig = json.loads((src / "draft_content.json").read_text(encoding="utf-8"))
             self.assertEqual(orig["duration"], 8_000_000)
+
+            # CapCut open requirements
+            for part_dir, part_draft in ((res.part1_dir, d1), (res.part2_dir, d2)):
+                cid = part_draft["id"]
+                self.assertTrue((part_dir / "Timelines" / cid).is_dir())
+                pj = json.loads((part_dir / "Timelines" / "project.json").read_text(encoding="utf-8"))
+                self.assertEqual(pj["main_timeline_id"], cid)
+                self.assertTrue((part_dir / "Timelines" / cid / "template.tmp").is_file())
+                self.assertTrue((part_dir / "Timelines" / cid / "template-2.tmp").is_file())
+                self.assertTrue((part_dir / "template-2.tmp").is_file())
+                self.assertNotEqual(pj["main_timeline_id"], old_id)
+                layout2 = json.loads((part_dir / "timeline_layout.json").read_text(encoding="utf-8"))
+                self.assertIn(cid, layout2["dockItems"][0]["timelineIds"])
 
 
 class TestResolveFfmpeg(unittest.TestCase):

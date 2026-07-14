@@ -451,48 +451,112 @@ def _rename_timeline_folder(project_dir: Path, old_content_id: str, new_content_
     return new_dir
 
 
+def _ensure_template_tmp(tl_dir: Path, draft: dict[str, Any]) -> None:
+    """CapCut refuses to open timelines without template.tmp (small canvas stub)."""
+    path = tl_dir / "template.tmp"
+    if path.is_file() and path.stat().st_size > 50:
+        return
+    canvas = draft.get("canvas_config") if isinstance(draft.get("canvas_config"), dict) else {}
+    stub = {
+        "canvas_config": {
+            "background": canvas.get("background"),
+            "height": int(canvas.get("height") or 0),
+            "ratio": canvas.get("ratio") or "original",
+            "width": int(canvas.get("width") or 0),
+        },
+        "color_space": draft.get("color_space", -1),
+        "config": draft.get("config") if isinstance(draft.get("config"), dict) else {},
+        "cover": None,
+        "duration": int(draft.get("duration") or 0),
+        "extra_info": None,
+        "fps": draft.get("fps") or 30.0,
+        "free_render_index_mode_on": bool(draft.get("free_render_index_mode_on")),
+        "group_container": None,
+        "id": str(draft.get("id") or ""),
+        "keyframe_graph_list": [],
+        "keyframes": {"adjusts": [], "audios": [], "effects": [], "filters": [], "handwrites": [], "stickers": [], "texts": [], "videos": []},
+        "last_modified_platform": draft.get("last_modified_platform"),
+        "materials": {},
+        "mutable_config": None,
+        "name": "",
+        "new_version": str(draft.get("new_version") or ""),
+        "platform": draft.get("platform"),
+        "relationships": [],
+        "render_index_track_mode_on": bool(draft.get("render_index_track_mode_on")),
+        "retouch_cover": None,
+        "source": draft.get("source") or "default",
+        "static_cover_image_path": "",
+        "time_marks": None,
+        "tracks": [],
+        "update_time": int(draft.get("update_time") or 0),
+        "version": int(draft.get("version") or 360000),
+    }
+    _write_json(path, stub)
+
+
 def _write_draft_targets(
     project_dir: Path,
     draft: dict[str, Any],
     *,
     old_content_id: str,
 ) -> Path:
-    """Write root + Timelines/<content_id> drafts; rename timeline folder to new id."""
+    """Write root + Timelines/<content_id> drafts; rename timeline folder to new id.
+
+    Mirrors CapCut/VectCut modern layout:
+    - draft_content.json (+ .bak, template-2.tmp) at root and under Timelines/<id>/
+    - template.tmp stub under Timelines/<id>/
+    - Timelines/project.json main_timeline_id == content id
+    """
     content_id = str(draft.get("id") or "")
-    # Keep draft name empty like CapCut originals (folder name is shown via meta)
-    if draft.get("name"):
-        draft["name"] = ""
+    # CapCut originals keep draft.name empty; library label comes from meta.draft_name
+    draft["name"] = ""
     tl_dir = _rename_timeline_folder(project_dir, old_content_id, content_id)
-    # Critical: project.json / timeline_layout still reference old_content_id
     _rewrite_timeline_index(
         project_dir, old_content_id=old_content_id, new_content_id=content_id
     )
-    root_draft = project_dir / "draft_content.json"
-    _write_json(root_draft, draft)
-    try:
-        _write_json(project_dir / "draft_content.json.bak", draft)
-    except Exception:
-        pass
+
+    payload_paths = [
+        project_dir / "draft_content.json",
+        project_dir / "draft_content.json.bak",
+        project_dir / "template-2.tmp",
+    ]
     if tl_dir is not None:
-        tl_draft = tl_dir / "draft_content.json"
-        _write_json(tl_draft, draft)
+        payload_paths.extend(
+            [
+                tl_dir / "draft_content.json",
+                tl_dir / "draft_content.json.bak",
+                tl_dir / "template-2.tmp",
+            ]
+        )
+        # cover used by CapCut project card / timeline
+        cover_src = project_dir / "draft_cover.jpg"
+        cover_dst = tl_dir / "draft_cover.jpg"
+        if cover_src.is_file() and not cover_dst.is_file():
+            try:
+                shutil.copy2(cover_src, cover_dst)
+            except Exception:
+                pass
+        # draft.extra is a tiny binary marker CapCut leaves next to timelines
+        extra = tl_dir / "draft.extra"
+        if not extra.is_file():
+            try:
+                # Observed on working projects (protobuf-ish empty object)
+                extra.write_bytes(
+                    b"i\x06\x00\x00\x00i\x00\x00\x00\x00ei\x00\x00\x00\x00\x02\x00\x00\x00{}\x99\xc0e\xc3"
+                )
+            except Exception:
+                pass
+        _ensure_template_tmp(tl_dir, draft)
+
+    for path in payload_paths:
         try:
-            _write_json(tl_dir / "draft_content.json.bak", draft)
-        except Exception:
-            pass
-        # CapCut working projects ship template.tmp next to timeline draft
-        src_tpl = None
-        # Prefer a template from the renamed folder if already present; else skip
-        for cand in (tl_dir / "template.tmp", tl_dir / "template-2.tmp"):
-            if cand.is_file():
-                src_tpl = cand
-                break
-        if src_tpl is None:
-            # leave as-is; not always required
-            pass
+            _write_json(path, draft)
+        except Exception as e:
+            logger.warning("Could not write %s: %s", path, e)
+
     # Do NOT overwrite subdraft/* — CapCut keeps those files independent of the
     # inlined materials.drafts[].draft payload (working projects mismatch on purpose).
-    return root_draft
+    return project_dir / "draft_content.json"
 
 
 def _patch_meta(
