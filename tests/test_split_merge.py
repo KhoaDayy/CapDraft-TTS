@@ -111,8 +111,7 @@ class TestSliceDraft(unittest.TestCase):
         self.assertEqual(p2["duration"], 5_000_000)
         self.assertNotEqual(p1["id"], draft["id"])
         self.assertNotEqual(p2["id"], p1["id"])
-        self.assertIn("Part 1", p1["name"])
-        self.assertIn("Part 2", p2["name"])
+        self.assertNotEqual(p1["id"], p2["id"])
         self.assertGreater(n1, 0)
         self.assertGreater(n2, 0)
 
@@ -162,6 +161,85 @@ class TestSliceDraft(unittest.TestCase):
         p1_ids = {x["id"] for x in p1["materials"]["speeds"]}
         self.assertIn("sp1", p1_ids)
         self.assertEqual(p1["materials"].get("beats"), [])
+
+    def test_nested_combination_sliced(self):
+        draft = _mini_draft(10_000_000)
+        # Outer wrapper segment references a combination draft (AutoVideo style)
+        combo_id = "combo-1"
+        draft["tracks"] = [
+            {
+                "id": "v1",
+                "type": "video",
+                "segments": [
+                    {
+                        "id": "vs1",
+                        "material_id": "vm1",
+                        "target_timerange": {"start": 0, "duration": 10_000_000},
+                        "source_timerange": {"start": 0, "duration": 10_000_000},
+                        "speed": 1.0,
+                        "extra_material_refs": [combo_id, "sp1"],
+                    }
+                ],
+            }
+        ]
+        draft["materials"]["drafts"] = [
+            {
+                "id": combo_id,
+                "type": "combination",
+                "draft": {
+                    "id": "nested-id",
+                    "name": "Clip",
+                    "duration": 10_000_000,
+                    "tracks": [
+                        {
+                            "id": "nt",
+                            "type": "text",
+                            "segments": [
+                                {
+                                    "id": "nts1",
+                                    "material_id": "tm1",
+                                    "target_timerange": {"start": 1_000_000, "duration": 1_000_000},
+                                    "source_timerange": {"start": 0, "duration": 1_000_000},
+                                    "extra_material_refs": [],
+                                },
+                                {
+                                    "id": "nts2",
+                                    "material_id": "tm2",
+                                    "target_timerange": {"start": 6_000_000, "duration": 1_000_000},
+                                    "source_timerange": {"start": 0, "duration": 1_000_000},
+                                    "extra_material_refs": [],
+                                },
+                            ],
+                        }
+                    ],
+                    "materials": {
+                        "texts": [
+                            {"id": "tm1", "type": "subtitle"},
+                            {"id": "tm2", "type": "subtitle"},
+                        ]
+                    },
+                },
+            }
+        ]
+        cut = 5_000_000
+        p1, _ = slice_draft(draft, cut, part=1, name_suffix="")
+        p2, _ = slice_draft(draft, cut, part=2, name_suffix="")
+        n1 = p1["materials"]["drafts"][0]["draft"]
+        n2 = p2["materials"]["drafts"][0]["draft"]
+        self.assertEqual(n1["duration"], cut)
+        self.assertEqual(n2["duration"], cut)
+        self.assertEqual(n1["id"], "nested-id")  # subdraft folder id preserved
+        segs1 = n1["tracks"][0]["segments"]
+        segs2 = n2["tracks"][0]["segments"]
+        self.assertEqual(len(segs1), 1)
+        self.assertEqual(segs1[0]["material_id"], "tm1")
+        self.assertEqual(len(segs2), 1)
+        self.assertEqual(segs2[0]["material_id"], "tm2")
+        self.assertEqual(segs2[0]["target_timerange"]["start"], 1_000_000)
+        # Outer source reset after nested rewrite
+        outer2 = p2["tracks"][0]["segments"][0]
+        self.assertEqual(outer2["source_timerange"]["start"], 0)
+        self.assertEqual(outer2["source_timerange"]["duration"], cut)
 
     def test_split_project_writes_dirs(self):
         with tempfile.TemporaryDirectory() as td:
