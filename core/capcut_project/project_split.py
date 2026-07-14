@@ -362,26 +362,58 @@ def _write_json(path: Path, data: Any) -> None:
     path.write_bytes(payload)
 
 
-def _write_nested_subdrafts(project_dir: Path, draft: dict[str, Any]) -> None:
-    """Sync materials.drafts[].draft into subdraft/<id>/draft_content.json when present."""
-    mats = draft.get("materials") or {}
-    for item in mats.get("drafts") or []:
-        if not isinstance(item, dict):
+def _rewrite_timeline_index(
+    project_dir: Path,
+    *,
+    old_content_id: str,
+    new_content_id: str,
+) -> None:
+    """CapCut opens via Timelines/project.json main_timeline_id + timeline_layout.json.
+
+    If these still point at the pre-split content id, the project card is visible
+    but clicking does nothing.
+    """
+    if not old_content_id or not new_content_id or old_content_id == new_content_id:
+        return
+
+    def _rewrite_obj(obj: Any) -> Any:
+        if isinstance(obj, dict):
+            out: dict[str, Any] = {}
+            for k, v in obj.items():
+                if isinstance(v, str) and v == old_content_id:
+                    out[k] = new_content_id
+                else:
+                    out[k] = _rewrite_obj(v)
+            return out
+        if isinstance(obj, list):
+            return [_rewrite_obj(x) for x in obj]
+        if isinstance(obj, str) and obj == old_content_id:
+            return new_content_id
+        return obj
+
+    targets = [
+        project_dir / "Timelines" / "project.json",
+        project_dir / "Timelines" / "project.json.bak",
+        project_dir / "timeline_layout.json",
+    ]
+    for path in targets:
+        if not path.is_file():
             continue
-        nested = item.get("draft")
-        if not isinstance(nested, dict):
-            continue
-        nid = str(nested.get("id") or "").strip()
-        if not nid:
-            continue
-        sub = project_dir / "subdraft" / nid / "draft_content.json"
-        if sub.parent.is_dir() or (project_dir / "subdraft").is_dir():
-            _write_json(sub, nested)
-            # companion bak CapCut sometimes reads
-            try:
-                _write_json(sub.with_name("draft_content.json.bak"), nested)
-            except Exception:
-                pass
+        try:
+            data = json.loads(path.read_text(encoding="utf-8-sig"))
+            new_data = _rewrite_obj(data)
+            # Fresh container id so CapCut doesn't treat this as the source project
+            if path.name.startswith("project.json") and isinstance(new_data, dict):
+                new_data["id"] = _new_id()
+            _write_json(path, new_data)
+            logger.info(
+                "Rewrote timeline index %s (%s → %s)",
+                path.name,
+                old_content_id,
+                new_content_id,
+            )
+        except Exception as e:
+            logger.warning("Could not rewrite %s: %s", path, e)
 
 
 def _rename_timeline_folder(project_dir: Path, old_content_id: str, new_content_id: str) -> Path | None:
@@ -427,10 +459,16 @@ def _write_draft_targets(
 ) -> Path:
     """Write root + Timelines/<content_id> drafts; rename timeline folder to new id."""
     content_id = str(draft.get("id") or "")
+    # Keep draft name empty like CapCut originals (folder name is shown via meta)
+    if draft.get("name"):
+        draft["name"] = ""
     tl_dir = _rename_timeline_folder(project_dir, old_content_id, content_id)
+    # Critical: project.json / timeline_layout still reference old_content_id
+    _rewrite_timeline_index(
+        project_dir, old_content_id=old_content_id, new_content_id=content_id
+    )
     root_draft = project_dir / "draft_content.json"
     _write_json(root_draft, draft)
-    # companions
     try:
         _write_json(project_dir / "draft_content.json.bak", draft)
     except Exception:
@@ -442,7 +480,18 @@ def _write_draft_targets(
             _write_json(tl_dir / "draft_content.json.bak", draft)
         except Exception:
             pass
-    _write_nested_subdrafts(project_dir, draft)
+        # CapCut working projects ship template.tmp next to timeline draft
+        src_tpl = None
+        # Prefer a template from the renamed folder if already present; else skip
+        for cand in (tl_dir / "template.tmp", tl_dir / "template-2.tmp"):
+            if cand.is_file():
+                src_tpl = cand
+                break
+        if src_tpl is None:
+            # leave as-is; not always required
+            pass
+    # Do NOT overwrite subdraft/* — CapCut keeps those files independent of the
+    # inlined materials.drafts[].draft payload (working projects mismatch on purpose).
     return root_draft
 
 
