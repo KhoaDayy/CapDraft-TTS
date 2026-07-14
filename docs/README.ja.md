@@ -24,63 +24,52 @@
   <a href="#動作要件"><img alt="Platform" src="https://img.shields.io/badge/platform-Windows-0078D6"></a>
 </p>
 
-<p align="center">
-  <img alt="capcut" src="https://img.shields.io/badge/capcut-TTS-black">
-  <img alt="text-to-speech" src="https://img.shields.io/badge/text--to--speech-120%2B%20voices-success">
-  <img alt="free" src="https://img.shields.io/badge/TTS-free%20%28no%20paid%20API%29-brightgreen">
-  <img alt="desktop" src="https://img.shields.io/badge/desktop-PySide6-orange">
-  <img alt="video" src="https://img.shields.io/badge/video-editing-lightgrey">
-</p>
-
 ---
 
 ## なぜ作ったか
 
-CapCut には多数の TTS 音声があります。CapDraft TTS は、それらをキャプションに使うためのツールで、**有料の第三者 TTS サービスは不要**です。
+CapCut には多数の TTS 音声があります。CapDraft TTS はそれらをキャプションに使うためのツールで、**有料の第三者 TTS は不要**です。
 
-- **120+ CapCut 音声**（GitHub からライブ取得）
-- **TTS 料金なし** — ローカル CapCut TTS API + `device.json` で CapCut 本体の TTS 経路を利用
-- CapCut プロジェクトのキャプションを読み、同じタイムラインへ音声を書き戻し
-- プロジェクト複製なし、音声の手動ドラッグ＆ドロップなし
+- **120+ CapCut 音声**
+- キャプションを読み、同じタイムラインへ音声を書き戻し
+- 大規模プロジェクト（約 5k 行）：仮想化テーブル、書き出しやすい薄いドラフト
+- プロジェクトを **2 つに分割** → CapCut で各半を書き出し → **ffmpeg で動画結合**
+- `.srt` 書き出し
 
-> CapCut Desktop、動作する CapCut TTS API、インターネットは必要です。「無料」は ElevenLabs / Azure などの追加有料音声 API を使わない、という意味です。
+> CapCut Desktop とインターネットは必要です。「無料」は追加の有料音声 API を使わない、という意味です。
 
 ## 機能
 
-- CapCut プロジェクトフォルダまたは `draft_content.json` を開く
-- キャプション一覧：検索、全選択、空行 / TTS なし / エラー絞り込み
-- オンライン音声カタログ（約 120+）、言語フィルタと検索
-- TTS 速度、CapCut クリップ速度、ピッチモード
-- 既存 TTS の置換、または既存 TTS 付きキャプションのスキップ
-- 任意の音声キャッシュと CapCut ネイティブ先頭アライン
-- 並列生成、キャンセル、進捗ログ
-- バックアップ + アトミック保存、失敗時ロールバック
-- Fluent ダーク UI（UI 文言はベトナム語）
+| 領域 | 内容 |
+|------|------|
+| **プロジェクト** | フォルダまたは `draft_content.json`（`Timelines/` 含む） |
+| **キャプション** | 約 5k 行の仮想テーブル、検索、全選択、空 / TTS なし / エラー |
+| **音声** | オンラインカタログ ~120+、言語フィルタと検索 |
+| **TTS** | クリップ速度、ピッチ、既存 TTS の置換/スキップ、キャッシュ、先頭アライン |
+| **パイプライン** | 並列生成、キャンセル、ログ、バックアップ + アトミック保存 + ロールバック |
+| **書き出し補助** | **2つに分割** · **動画を結合**（ffmpeg） · **SRT を出力** |
+| **UI** | 越/英/中/日 · Windows ライト/ダーク/自動 |
 
 ## 動作要件
 
 - Windows 10/11
 - CapCut Desktop + キャプション済みプロジェクト
-- ローカル CapCut TTS API と有効な `device.json`
-- FFmpeg / FFprobe（`PATH` または設定で指定）
-- インターネット（音声カタログ + CapCut TTS 通信）
+- インターネット（TTS + カタログ）
+- **ffmpeg**（`PATH` または `ffmpeg_path`）— **動画結合**のみ
+- **ffprobe** は任意
 
-ソース実行時は Python 3.10+ も必要です。
+ソース開発は [`uv`](https://docs.astral.sh/uv/) を使用。
 
 ## インストール
 
 ### ビルド済み（推奨）
 
-1. [Releases](https://github.com/KhoaDayy/CapDraft-TTS/releases) から `CapDraft-TTS-v1.0.1-windows-x64.zip` をダウンロード
+1. [Releases](https://github.com/KhoaDayy/CapDraft-TTS/releases/latest) から最新の `CapDraft-TTS-v*-windows-x64.zip` を取得
 2. 展開して `CapDraft-TTS.exe` を実行
-3. **設定**（歯車）で次を指定：
-   - CapCut TTS API フォルダ
-   - `device.json`
-   - `PATH` に無い場合は FFmpeg / FFprobe
+3. CapCut プロジェクトを選ぶだけ（通常 `config.json` 不要）
 
 ```powershell
-Get-FileHash .\CapDraft-TTS-v1.0.1-windows-x64.zip -Algorithm SHA256
-# リリースの .sha256 と比較して確認
+Get-FileHash .\CapDraft-TTS-v1.2.4-windows-x64.zip -Algorithm SHA256
 ```
 
 ### ソースから実行
@@ -88,95 +77,50 @@ Get-FileHash .\CapDraft-TTS-v1.0.1-windows-x64.zip -Algorithm SHA256
 ```powershell
 git clone https://github.com/KhoaDayy/CapDraft-TTS.git
 cd CapDraft-TTS
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
+uv sync --group dev
 Copy-Item config.example.json config.json
-python main.py
+uv run python main.py
 ```
+
+任意設定は `config.example.json` を参照（`capcut_projects_path`、`ffmpeg_path` など）。
 
 ## 使い方
 
-1. **Chọn project** → CapCut プロジェクトフォルダまたは `draft_content.json`
+### TTS 生成
+
+1. **プロジェクトを選択** → CapCut フォルダまたは `draft_content.json`
 2. キャプションを確認 / 絞り込み
-3. 言語 + 音声を選択（オンラインカタログの 120+ CapCut 音声）
-4. 速度・クリップ速度・ピッチ・既存 TTS 方針を設定
-5. キャプションを選択 → **Tạo và gắn TTS**
-6. 書き込み前に CapCut でプロジェクトを閉じ、再オープンしてタイムラインを確認
+3. 言語 + 音声を選択
+4. 速度・ピッチ・既存 TTS 方針を設定
+5. 選択 → **TTS を生成して追加**
+6. **書き込み前に CapCut でプロジェクトを閉じ**、再オープンして確認
+
+### 大規模 / CapCut 書き出し失敗時
+
+1. CapDraft TTS でプロジェクトを読み込み（TTS 済みでも可）
+2. **2つに分割** → ソース横に `_part1` / `_part2` を作成
+3. CapCut を完全終了してから各 half を書き出し
+4. **動画を結合** → part1 → part2 の順で選択 → 1 本の MP4 を保存
 
 > [!IMPORTANT]
-> 書き込み前に CapCut プロジェクトを閉じてください。アプリはローカルバックアップを作りますが、重要なドラフトは別途バックアップしてください。
+> TTS 書き込みや分割の前に CapCut（またはプロジェクト）を閉じてください。TTS 書き込み時はローカルバックアップがありますが、重要ドラフトは別途バックアップしてください。
 
-## 無料 CapCut TTS の流れ
+### SRT 出力
 
-```text
-CapCut プロジェクトのキャプション
-        │
-        ▼
- CapDraft TTS  ──►  ローカル CapCut TTS API + device.json  ──►  CapCut TTS 音声
-        │
-        ▼
- 同じドラフトのタイムラインへ音声を書き戻し
-```
-
-- 音声は CapCut カタログ由来（本リポジトリの `Voice.json` をオンライン公開）
-- 生成はあなたの CapCut TTS API 経由で、**有料クラウド TTS ではない**
-- アプリは音声販売や文字課金をしません
-
-## 音声カタログ
-
-次の URL から**メモリへ直接ロード**します：
-
-```text
-https://raw.githubusercontent.com/KhoaDayy/CapDraft-TTS/refs/heads/main/Voice.json
-```
-
-- アプリパッケージにローカルカタログは不要
-- **設定 → Giọng đọc** で URL 変更、または **Tải lại danh sách** で再取得
-- 全員向けに音声を追加/編集する場合は `main` の `Voice.json` を更新
-
-## 設定
-
-`config.json` はマシン固有（gitignore）。[`config.example.json`](../config.example.json) をコピーしてください。
-
-| キー | 用途 |
-| --- | --- |
-| `capcut_tts_path` | CapCut TTS API フォルダ |
-| `device_json_path` | CapCut TTS 用 `device.json` |
-| `voice_catalog_url` | 音声リスト JSON の raw URL |
-| `ffmpeg_path` / `ffprobe_path` | メディアツール |
-| `tts_chunk_size` | 1 バッチあたりのキャプション数 |
-| `tts_parallel_chunks` | 並列バッチ数 |
-| `tts_download_workers` | 音声ダウンロード並列数 |
-| `tts_poll_interval_sec` | TTS 待ちポーリング間隔 |
-| `cache_path` | 生成音声キャッシュ |
-| `max_backups` | ドラフトバックアップ保持数 |
-
-## プロジェクト構成
-
-```text
-main.py                 エントリ
-core/config.py          設定
-core/capcut_tts.py      CapCut TTS API ラッパ
-core/capcut_project/    CapCut ドラフトの読取 / パッチ / 検証
-ui/                     デスクトップ UI
-tests/                  テスト
-Voice.json              公開音声リスト（URL 取得）
-docs/                   多言語 README
-```
+**SRT を出力**で非空キャプションを `.srt` に保存します。
 
 ## 開発
 
 ```powershell
-python -m unittest discover -s tests -v
-.\build-release.ps1 -Version 1.0.1
+uv run python -m unittest discover -s tests -v
+.\build-release.ps1 -Version 1.2.4
 ```
 
-[`CONTRIBUTING.md`](../CONTRIBUTING.md) と [`CHANGELOG.md`](../CHANGELOG.md) を参照。
+リリース：`v*` タグ push で CI。詳細は [`CHANGELOG.md`](../CHANGELOG.md)、[`CONTRIBUTING.md`](../CONTRIBUTING.md)。
 
-## ライセンス / 法的注意
+## ライセンス / 法務
 
 - [`LICENSE`](../LICENSE)（Apache-2.0）
-- 独立プロジェクト — CapCut / ByteDance とは**無関係・非公認**
-- CapCut 利用規約、端末/アカウント規則、コンテンツ著作権は利用者責任
-- QFluentWidgets は非商用で GPLv3；商用配布前にライセンスを確認してください
+- 独立プロジェクト — CapCut / ByteDance **非公式**
+- CapCut 利用規約とコンテンツ権利は利用者の責任
+- QFluentWidgets は非商用 GPLv3。商用配布前にライセンスを確認
