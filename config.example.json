@@ -13,6 +13,8 @@
   "tts_download_workers": 8,
   "cache_path": "cache",
   "project_output_path": "projects",
+  "capcut_projects_path": "",
+  "ffmpeg_path": "ffmpeg",
   "max_backups": 10,
   "language": "vi",
   "theme_mode": "auto"

@@ -359,43 +359,54 @@ class CapCutProjectTtsService:
         items = [{"index": c.index, "text": c.text} for c in to_generate]
         tts_results: dict[int, dict[str, Any]] = {}
 
+        total = max(len(to_generate), 1)
+        # Per-caption logs/progress flood the UI on 1k–2k jobs; sample successes.
+        # Failures always log. Progress updates every N items (or first/last).
+        log_every = 1 if total <= 40 else (25 if total <= 400 else 50)
+        prog_every = 1 if total <= 40 else max(5, total // 40)  # ~40 bar updates max
+        last_prog_bucket = {"n": -1}
+
         def on_item(idx: int, res: dict[str, Any]):
             tts_results[int(idx)] = res
             status = res.get("status", "")
             dur = float(res.get("duration") or 0.0)
-            if status == "Cached":
-                self.emit_log(
-                    "CACHED",
-                    f"Caption #{idx} loaded from cache · duration={dur:.2f}s",
-                    stage="TTS",
-                    caption_index=idx,
-                    log_callback=cb,
-                )
-            elif status == "Failed":
-                self.emit_log(
-                    "ERROR",
-                    f"Caption #{idx} failed · {res.get('error', 'unknown')}",
-                    stage="TTS",
-                    caption_index=idx,
-                    log_callback=cb,
-                )
-            else:
-                self.emit_log(
-                    "SUCCESS",
-                    f"Caption #{idx} generated · duration={dur:.2f}s",
-                    stage="TTS",
-                    caption_index=idx,
-                    log_callback=cb,
-                )
+            done = len(tts_results)
+            log_this = status == "Failed" or done == 1 or done == total or (done % log_every == 0)
+            if log_this:
+                if status == "Cached":
+                    self.emit_log(
+                        "CACHED",
+                        f"Caption #{idx} loaded from cache · duration={dur:.2f}s · {done}/{total}",
+                        stage="TTS",
+                        caption_index=idx,
+                        log_callback=cb,
+                    )
+                elif status == "Failed":
+                    self.emit_log(
+                        "ERROR",
+                        f"Caption #{idx} failed · {res.get('error', 'unknown')}",
+                        stage="TTS",
+                        caption_index=idx,
+                        log_callback=cb,
+                    )
+                else:
+                    self.emit_log(
+                        "SUCCESS",
+                        f"Caption #{idx} generated · duration={dur:.2f}s · {done}/{total}",
+                        stage="TTS",
+                        caption_index=idx,
+                        log_callback=cb,
+                    )
             if item_completed_callback:
                 try:
                     item_completed_callback(int(idx), res)
                 except Exception:
                     pass
-            # progress 5–75%
-            done = len(tts_results)
-            total = max(len(to_generate), 1)
-            prog(0.05 + 0.70 * (done / total), "tts")
+            # progress 5–75% — throttle widget updates (table already batched on UI side)
+            bucket = done // prog_every
+            if done == 1 or done == total or bucket != last_prog_bucket["n"]:
+                last_prog_bucket["n"] = bucket
+                prog(0.05 + 0.70 * (done / total), "tts")
 
         if to_generate:
             try:
@@ -543,6 +554,7 @@ class CapCutProjectTtsService:
 
         audio_rel: dict[int, str] = {}
         new_audio_paths: list[Path] = []
+        copy_jobs: list[tuple[Path, str, CaptionTtsResult]] = []
         for r in success_items:
             src = Path(r.audio_path)
             if not src.exists():
@@ -556,29 +568,38 @@ class CapCutProjectTtsService:
                 continue
             short = uuid.uuid4().hex[:8]
             dest_name = f"tts_{r.caption_index:06d}_{short}{src.suffix or '.mp3'}"
-            try:
-                rel = self.exporter.copy_audio_into_project(
-                    src,
-                    project_dir,
-                    dest_name,
-                    draft=draft,
-                    placeholder=placeholder,
-                    path_style="absolute",
-                )
-                audio_rel[r.caption_index] = rel
-                new_audio_paths.append(project_dir / "textReading" / dest_name)
-                r.audio_path = str(project_dir / "textReading" / dest_name)
-            except Exception as e:
+            copy_jobs.append((src, dest_name, r))
+
+        workers = max(1, int(self.config.get("tts_download_workers", 8) or 8))
+        batch_results = self.exporter.copy_audio_batch(
+            [(src, name) for src, name, _r in copy_jobs],
+            project_dir,
+            draft=draft,
+            placeholder=placeholder,
+            path_style="absolute",
+            workers=workers,
+        )
+        for (src, dest_name, r), (rel, err) in zip(copy_jobs, batch_results):
+            if err or not rel:
                 r.status = "failed"
-                r.error = str(e)
+                r.error = err or "copy failed"
                 failed += 1
+                if r.from_cache:
+                    cached = max(0, cached - 1)
+                else:
+                    generated = max(0, generated - 1)
                 self.emit_log(
                     "ERROR",
-                    f"Copy failed caption #{r.caption_index}: {e}",
+                    f"Copy failed caption #{r.caption_index}: {r.error}",
                     stage="copying_audio",
                     caption_index=r.caption_index,
                     log_callback=cb,
                 )
+                continue
+            audio_rel[r.caption_index] = rel
+            dest_path = project_dir / "textReading" / dest_name
+            new_audio_paths.append(dest_path)
+            r.audio_path = str(dest_path)
 
         success_items = [r for r in item_results if r.status in {"generated", "cached"} and r.caption_index in audio_rel]
         if not success_items:

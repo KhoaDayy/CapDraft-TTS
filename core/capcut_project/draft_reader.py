@@ -68,7 +68,11 @@ class DraftReader:
     def get_draft_copy(self) -> dict[str, Any]:
         if self.draft is None:
             raise RuntimeError("No draft loaded")
-        return copy.deepcopy(self.draft)
+        # json clone is faster than deepcopy on multi-MB CapCut drafts
+        try:
+            return json.loads(json.dumps(self.draft, ensure_ascii=False, separators=(",", ":")))
+        except (TypeError, ValueError):
+            return copy.deepcopy(self.draft)
 
     # ------------------------------------------------------------------
     # Project info

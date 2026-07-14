@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -80,6 +81,7 @@ class PatchStats:
 class DraftPatcher:
     """Deep-copy template → new UUIDs → remap refs → attach TTS."""
 
+    # Used when removing old TTS extras (keep broad so orphans get cleaned).
     EXTRA_BUCKETS = (
         "speeds",
         "placeholder_infos",
@@ -88,6 +90,10 @@ class DraftPatcher:
         "vocal_separations",
         "audio_fades",
     )
+    # Only create what CapCut needs for clip-speed TTS. Extra template buckets
+    # (placeholder/beats/channel/vocal) are ~4 objects × N captions and make
+    # CapCut export crawl or fail on multi-thousand caption projects.
+    CREATE_EXTRA_BUCKETS = ("speeds",)
 
     def __init__(
         self,
@@ -99,6 +105,31 @@ class DraftPatcher:
         self.templates = templates
         self.fps = fps or 30.0
         self.alignment = alignment or NativeAudioAlignmentSettings()
+        # Snapshot templates once so per-caption clone is cheap (json round-trip
+        # is faster than deepcopy for CapCut's large nested material dicts).
+        self._mat_tpl = templates.get("audio_material") or {}
+        self._seg_tpl = templates.get("audio_segment") or {}
+        self._extras_tpl = templates.get("extras") or {}
+        self._track_tpl = templates.get("audio_track") or {
+            "id": "",
+            "type": "audio",
+            "flag": 0,
+            "attribute": 0,
+            "name": "",
+            "is_default_name": True,
+            "segments": [],
+        }
+
+    @staticmethod
+    def _clone(obj: Any) -> Any:
+        """Fast deep clone for JSON-like dict/list trees."""
+        if obj is None or isinstance(obj, (str, int, float, bool)):
+            return obj
+        try:
+            # C-accelerated path; CapCut materials are pure JSON types.
+            return json.loads(json.dumps(obj, ensure_ascii=False, separators=(",", ":")))
+        except (TypeError, ValueError):
+            return copy.deepcopy(obj)
 
     def patch(
         self,
@@ -244,6 +275,18 @@ class DraftPatcher:
         logger.info("[Patch] Assigned audio into %s non-overlapping tracks", tracks_used)
         if tracks_created:
             logger.info("[Patch] Created %s new audio tracks", tracks_created)
+        # Rough export-cost signal for large jobs (CapCut struggles on object count).
+        if stats.segments_created >= 500:
+            extras_n = sum(
+                len(materials.get(b) or [])
+                for b in ("speeds", "audio_fades", "placeholder_infos", "beats")
+            )
+            logger.info(
+                "[Patch] Large job · segments=%s · audio_tracks=%s · speed+fade+misc materials≈%s",
+                stats.segments_created,
+                tracks_used,
+                extras_n,
+            )
 
         max_end = 0
         for seg in pending_segments:
@@ -266,9 +309,9 @@ class DraftPatcher:
         clip_speed: float,
         is_tone_modify: bool,
     ) -> tuple[dict, dict, list[tuple[str, dict]], NativeAlignmentResult | None]:
-        mat = copy.deepcopy(self.templates["audio_material"])
-        seg = copy.deepcopy(self.templates["audio_segment"])
-        extras_tpl = self.templates.get("extras") or {}
+        mat = self._clone(self._mat_tpl)
+        seg = self._clone(self._seg_tpl)
+        extras_tpl = self._extras_tpl
 
         mat_id = new_uuid()
         seg_id = new_uuid()
@@ -283,27 +326,37 @@ class DraftPatcher:
         mat["name"] = (caption.text or voice_display_name or "TTS")[:40]
         mat["local_material_id"] = mat_id
         mat["music_id"] = mat_id
+        # Drop heavy/unused template payload CapCut rewrites on open anyway.
+        mat["wave_points"] = []
+        for heavy_key in (
+            "intensifies_path",
+            "aigc_history_id",
+            "aigc_item_id",
+            "request_id",
+            "query",
+            "search_id",
+            "tts_task_id",
+        ):
+            if heavy_key in mat:
+                mat[heavy_key] = ""
         self._apply_safe_tts_voice(mat, text_id=caption.text_material_id)
 
         extra_objs: list[tuple[str, dict]] = []
         extra_ids: list[str] = []
-        for bucket in self.EXTRA_BUCKETS:
-            if bucket == "audio_fades":
-                # created by alignment helper
-                continue
+        for bucket in self.CREATE_EXTRA_BUCKETS:
             tpl = extras_tpl.get(bucket)
             if tpl is None:
                 if bucket == "speeds":
                     tpl = {"id": "", "type": "speed", "mode": 0, "speed": 1.0, "curve_speed": None}
                 else:
                     continue
-            obj = copy.deepcopy(tpl)
+            obj = self._clone(tpl)
             obj["id"] = new_uuid()
             if bucket == "speeds":
                 obj["type"] = "speed"
                 obj["speed"] = float(clip_speed)
                 obj["mode"] = int(obj.get("mode") or 0)
-                obj["curve_speed"] = obj.get("curve_speed", None)
+                obj["curve_speed"] = None
             extra_objs.append((bucket, obj))
             extra_ids.append(obj["id"])
 
@@ -315,6 +368,18 @@ class DraftPatcher:
         seg["render_index"] = 0
         seg["volume"] = float(seg.get("volume") if seg.get("volume") is not None else 1.0)
         seg["visible"] = True
+        # Keep segment payload lean — unused video/keyframe fields bloat 5k× drafts.
+        for drop_key in (
+            "common_keyframes",
+            "keyframe_refs",
+            "lyric_keyframes",
+            "caption_info",
+            "hdr_settings",
+            "clip",
+            "uniform_scale",
+        ):
+            if drop_key in seg:
+                seg[drop_key] = [] if drop_key.endswith("refs") or drop_key.endswith("keyframes") else None
 
         fade_bucket: list[dict[str, Any]] = []
         align_res = apply_native_audio_alignment(
@@ -366,24 +431,19 @@ class DraftPatcher:
     def _normalize_tts_voice_materials(self, materials: dict[str, Any]) -> int:
         audios = materials.get("audios") or []
         normalized = 0
-        watched = (
-            "resource_id",
-            "tone_speaker",
-            "mock_tone_speaker",
-            "tone_type",
-            "tone_effect_name",
-            "tone_platform",
-            "copyright_limit_type",
-            "tts_benefit_info",
-        )
         for mat in audios:
             if not isinstance(mat, dict) or mat.get("type") != "text_to_audio":
                 continue
-            before = tuple((key, copy.deepcopy(mat.get(key))) for key in watched)
+            # Cheap dirty check — skip materials already on the export-safe voice.
+            if (
+                mat.get("resource_id") == SAFE_TTS_RESOURCE_ID
+                and mat.get("tone_speaker") == SAFE_TTS_VOICE_TYPE
+                and mat.get("mock_tone_speaker") == SAFE_TTS_VOICE_TYPE
+                and mat.get("copyright_limit_type") == "none"
+            ):
+                continue
             self._apply_safe_tts_voice(mat)
-            after = tuple((key, copy.deepcopy(mat.get(key))) for key in watched)
-            if after != before:
-                normalized += 1
+            normalized += 1
         return normalized
 
     def _remove_existing_tts(self, draft: dict[str, Any], captions: list[CaptionRow]) -> int:
@@ -481,18 +541,7 @@ class DraftPatcher:
                 lane = {"track": t, "last_end": 0}
                 lanes.append(lane)
                 return lane
-            tpl = copy.deepcopy(
-                self.templates.get("audio_track")
-                or {
-                    "id": "",
-                    "type": "audio",
-                    "flag": 0,
-                    "attribute": 0,
-                    "name": "",
-                    "is_default_name": True,
-                    "segments": [],
-                }
-            )
+            tpl = self._clone(self._track_tpl)
             tpl["id"] = new_uuid()
             tpl["type"] = "audio"
             tpl["segments"] = []
@@ -509,10 +558,11 @@ class DraftPatcher:
             start = int(tgt.get("start") or 0)
             end = start + int(tgt.get("duration") or 0)
             placed = None
+            # Prefer earliest-ending free lane (keeps track count low → faster CapCut export)
             for lane in lanes:
                 if lane["last_end"] <= start:
-                    placed = lane
-                    break
+                    if placed is None or lane["last_end"] < placed["last_end"]:
+                        placed = lane
             if placed is None:
                 placed = ensure_lane()
             placed["track"].setdefault("segments", []).append(seg)

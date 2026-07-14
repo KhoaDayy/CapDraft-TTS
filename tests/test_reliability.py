@@ -657,9 +657,12 @@ class TestWorkbenchUi(unittest.TestCase):
         self.assertIn("Hiển thị", self.win.lbl_selection.text())
 
     def test_table_header_noi_dung(self):
+        from PySide6.QtCore import Qt
+
+        model = self.win.table.model()
         headers = [
-            self.win.table.horizontalHeaderItem(i).text()
-            for i in range(self.win.table.columnCount())
+            model.headerData(i, Qt.Horizontal) or ""
+            for i in range(model.columnCount())
         ]
         self.assertIn("Nội dung", headers)
         self.assertNotIn("Caption", headers)
@@ -729,16 +732,23 @@ class TestWorkbenchUi(unittest.TestCase):
     def test_generating_disables_settings_and_selection(self):
         from ui.main_window import UiState
         from PySide6.QtCore import Qt
-        from PySide6.QtWidgets import QTableWidgetItem
+        from core.capcut_project.models import CaptionRow
 
-        # seed one selectable row
-        self.win.table.setRowCount(1)
-        chk = QTableWidgetItem()
-        chk.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
-        chk.setCheckState(Qt.Checked)
-        self.win.table.setItem(0, 0, chk)
-        for col in range(1, 9):
-            self.win.table.setItem(0, col, QTableWidgetItem("x" if col != 6 else "Sẵn sàng"))
+        self.win._caption_model.set_captions(
+            [
+                CaptionRow(
+                    index=1,
+                    text_track_id="t",
+                    text_segment_id="seg-1",
+                    text_material_id="mat-1",
+                    start_us=0,
+                    duration_us=1_000_000,
+                    text="hello",
+                    existing_tts_segment_ids=[],
+                )
+            ]
+        )
+        self.win._filter_table()
 
         self.win._apply_ui_state(UiState.GENERATING)
         self.assertFalse(self.win.btn_browse.isEnabled())
@@ -749,39 +759,52 @@ class TestWorkbenchUi(unittest.TestCase):
         self.assertFalse(self.win.btn_select_all.isEnabled())
         self.assertFalse(self.win.chk_only_errors.isEnabled())
         # checkbox flags frozen (not user-checkable)
-        flags = self.win.table.item(0, 0).flags()
+        flags = self.win._caption_model.flags(self.win._caption_model.index(0, 0))
         self.assertFalse(bool(flags & Qt.ItemIsUserCheckable))
 
         self.win._apply_ui_state(UiState.IDLE_READY)
         self.assertTrue(self.win.cmb_voice.isEnabled())
         self.assertTrue(self.win.ed_search.isEnabled())
-        self.assertTrue(bool(self.win.table.item(0, 0).flags() & Qt.ItemIsUserCheckable))
+        flags = self.win._caption_model.flags(self.win._caption_model.index(0, 0))
+        self.assertTrue(bool(flags & Qt.ItemIsUserCheckable))
 
     def test_filter_only_errors(self):
-        from PySide6.QtCore import Qt
-        from PySide6.QtWidgets import QTableWidgetItem
+        from core.capcut_project.models import CaptionRow
 
-        self.win.table.setRowCount(2)
-        for row, status in enumerate(["Sẵn sàng", "Lỗi"]):
-            chk = QTableWidgetItem()
-            chk.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
-            chk.setCheckState(Qt.Unchecked)
-            self.win.table.setItem(row, 0, chk)
-            self.win.table.setItem(row, 1, QTableWidgetItem(str(row + 1)))
-            self.win.table.setItem(row, 2, QTableWidgetItem("0"))
-            self.win.table.setItem(row, 3, QTableWidgetItem("1"))
-            self.win.table.setItem(row, 4, QTableWidgetItem(f"text{row}"))
-            self.win.table.setItem(row, 5, QTableWidgetItem("Không"))
-            self.win.table.setItem(row, 6, QTableWidgetItem(status))
-            self.win.table.setItem(row, 7, QTableWidgetItem(""))
-            self.win.table.setItem(row, 8, QTableWidgetItem("boom" if status == "Lỗi" else ""))
-
+        caps = [
+            CaptionRow(
+                index=1,
+                text_track_id="t",
+                text_segment_id="seg-1",
+                text_material_id="mat-1",
+                start_us=0,
+                duration_us=1_000_000,
+                text="text0",
+                existing_tts_segment_ids=[],
+            ),
+            CaptionRow(
+                index=2,
+                text_track_id="t",
+                text_segment_id="seg-2",
+                text_material_id="mat-2",
+                start_us=1_000_000,
+                duration_us=1_000_000,
+                text="text1",
+                existing_tts_segment_ids=[],
+            ),
+        ]
+        self.win._caption_model.set_captions(caps)
+        self.win._caption_model.apply_item_results(
+            {2: {"status": "Failed", "error": "boom", "duration": 0}}
+        )
         self.win.chk_hide_empty.setChecked(False)
         self.win.chk_only_no_tts.setChecked(False)
         self.win.chk_only_errors.setChecked(True)
         self.win._filter_table()
-        self.assertTrue(self.win.table.isRowHidden(0))
-        self.assertFalse(self.win.table.isRowHidden(1))
+        # Only the failed row remains visible through the proxy.
+        self.assertEqual(self.win._caption_proxy.rowCount(), 1)
+        src = self.win._caption_proxy.mapToSource(self.win._caption_proxy.index(0, 0))
+        self.assertEqual(src.row(), 1)
 
     def test_advanced_collapsed_sizehint_smaller(self):
         # sizeHint of content may stay constant; maximumHeight + isHidden free layout space
@@ -814,22 +837,26 @@ class TestWorkbenchUi(unittest.TestCase):
         """API tts_rate is fixed at 1.0; UI only exposes clip_speed."""
         from ui.main_window import GenerateWorker, UiState
         from unittest.mock import patch
-        from PySide6.QtCore import Qt
-        from PySide6.QtWidgets import QTableWidgetItem
+        from core.capcut_project.models import CaptionRow
 
         self.win.ed_project.setText("C:/fake")
         self.win._apply_ui_state(UiState.IDLE_READY)
 
-        self.win.table.setRowCount(1)
-        chk = QTableWidgetItem()
-        chk.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
-        chk.setCheckState(Qt.Checked)
-        self.win.table.setItem(0, 0, chk)
-        idx_item = QTableWidgetItem("1")
-        idx_item.setData(Qt.UserRole, "seg-1")
-        self.win.table.setItem(0, 1, idx_item)
-        for col in range(2, 9):
-            self.win.table.setItem(0, col, QTableWidgetItem("x" if col != 6 else "Sẵn sàng"))
+        self.win._caption_model.set_captions(
+            [
+                CaptionRow(
+                    index=1,
+                    text_track_id="t",
+                    text_segment_id="seg-1",
+                    text_material_id="mat-1",
+                    start_us=0,
+                    duration_us=1_000_000,
+                    text="hello",
+                    existing_tts_segment_ids=[],
+                )
+            ]
+        )
+        self.win._filter_table()
 
         class V:
             voice_type = "vt"

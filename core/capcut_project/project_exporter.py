@@ -47,6 +47,76 @@ class ProjectExporter:
         if src.resolve() != dest.resolve():
             shutil.copy2(src, dest)
 
+        return self._format_audio_path(
+            dest, dest_name, draft=draft, placeholder=placeholder, path_style=path_style
+        )
+
+    def copy_audio_batch(
+        self,
+        items: list[tuple[Path | str, str]],
+        project_directory: Path,
+        *,
+        draft: dict[str, Any] | None = None,
+        placeholder: str | None = None,
+        path_style: str = "absolute",
+        workers: int = 8,
+    ) -> list[tuple[str, str | None]]:
+        """Copy many audio files into textReading/ in parallel.
+
+        items: list of (source_path, dest_name)
+        returns: list of (rel_path_or_empty, error_or_None) aligned with items
+        """
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        dest_dir = self.text_reading_dir(project_directory)
+        results: list[tuple[str, str | None]] = [("", "not started")] * len(items)
+        if not items:
+            return results
+
+        def _one(i: int, source_path: Path | str, dest_name: str) -> tuple[int, str, str | None]:
+            try:
+                src = Path(source_path)
+                if not src.exists():
+                    return i, "", f"Audio not found: {src}"
+                dest = dest_dir / dest_name
+                if src.resolve() != dest.resolve():
+                    shutil.copy2(src, dest)
+                rel = self._format_audio_path(
+                    dest,
+                    dest_name,
+                    draft=draft,
+                    placeholder=placeholder,
+                    path_style=path_style,
+                )
+                return i, rel, None
+            except Exception as e:
+                return i, "", str(e)
+
+        max_workers = max(1, min(int(workers or 1), len(items), 32))
+        if max_workers == 1 or len(items) == 1:
+            for i, (src, name) in enumerate(items):
+                idx, rel, err = _one(i, src, name)
+                results[idx] = (rel, err)
+            return results
+
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futs = [
+                pool.submit(_one, i, src, name) for i, (src, name) in enumerate(items)
+            ]
+            for fut in as_completed(futs):
+                idx, rel, err = fut.result()
+                results[idx] = (rel, err)
+        return results
+
+    def _format_audio_path(
+        self,
+        dest: Path,
+        dest_name: str,
+        *,
+        draft: dict[str, Any] | None,
+        placeholder: str | None,
+        path_style: str,
+    ) -> str:
         # CapCut on Windows prefers forward slashes in material paths
         abs_path = str(dest.resolve()).replace("\\", "/")
         if path_style == "relative":
@@ -126,17 +196,22 @@ class ProjectExporter:
         project_directory: Path | None = None,
         project_id: str = "",
     ) -> list[Path]:
-        """Prepare+fsync all temps, then replace. On mid-commit failure, restore already-replaced targets."""
+        """Prepare+fsync all temps, then replace. On mid-commit failure, restore already-replaced targets.
+
+        Serializes the draft JSON once, then fans the bytes out to every CapCut
+        write target (root + Timelines copies) — 5k-caption drafts are multi-MB.
+        """
         project_directory = project_directory or draft_path.parent
         targets = list_draft_write_targets(
             draft_path, project_directory, project_id or str(draft.get("id") or "")
         )
+        payload = json.dumps(draft, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         prepared: list[tuple[Path, Path]] = []  # (target, temp)
         preimages: dict[Path, Path | None] = {}
         written: list[Path] = []
         try:
             for target in targets:
-                temp = self._prepare_json_temp(target, draft)
+                temp = self._prepare_bytes_temp(target, payload)
                 prepared.append((target, temp))
             # Snapshot existing content for exact rollback of replaced targets
             for target, _temp in prepared:
@@ -189,14 +264,28 @@ class ProjectExporter:
                     pass
 
         # Companion files CapCut sometimes reloads (best-effort; not part of multi-target atomic set)
-        for companion in ("draft_content.json.bak", "template-2.tmp"):
-            for base in {t.parent for t in written}:
+        # Write once per unique parent dir.
+        for base in {t.parent for t in written}:
+            for companion in ("draft_content.json.bak", "template-2.tmp"):
                 cpath = base / companion
                 try:
-                    self.atomic_write_json(cpath, draft)
+                    self._write_bytes_atomic(cpath, payload)
                 except Exception as e:
                     logger.debug("Companion write skipped %s: %s", cpath, e)
         return written
+
+    def _prepare_bytes_temp(self, path: Path, payload: bytes) -> Path:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary_path = path.with_name(path.name + ".tmp")
+        with temporary_path.open("wb") as file:
+            file.write(payload)
+            file.flush()
+            os.fsync(file.fileno())
+        return temporary_path
+
+    def _write_bytes_atomic(self, path: Path, payload: bytes) -> None:
+        temporary_path = self._prepare_bytes_temp(path, payload)
+        os.replace(temporary_path, path)
 
     def _restore_file_atomic(self, source: Path, dest: Path) -> None:
         dest.parent.mkdir(parents=True, exist_ok=True)

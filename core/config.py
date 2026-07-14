@@ -40,6 +40,7 @@ def _resource_roots() -> list[Path]:
 
 DEFAULT_CONFIG = {
     "ffprobe_path": "ffprobe",
+    "ffmpeg_path": "ffmpeg",
     "capcut_tts_path": "external/capcut-tts-api",
     "device_json_path": "external/capcut-tts-api/device.json",
     "voice_catalog_url": DEFAULT_VOICE_CATALOG_URL,
@@ -53,6 +54,7 @@ DEFAULT_CONFIG = {
     "tts_download_workers": 8,
     "cache_path": "cache",
     "project_output_path": "projects",
+    "capcut_projects_path": "",
     "max_backups": 10,
     "language": "vi",
     "theme_mode": "auto",
@@ -85,7 +87,8 @@ class AppConfig:
 
     def _normalize_legacy_keys(self):
         # Prefer explicit URL; fall back to old update-url key; drop local path.
-        self._data.pop("ffmpeg_path", None)
+        if not str(self._data.get("ffmpeg_path") or "").strip():
+            self._data["ffmpeg_path"] = "ffmpeg"
         legacy_url = self._data.pop("voice_catalog_update_url", None)
         self._data.pop("voice_catalog_path", None)
         if not str(self._data.get("voice_catalog_url") or "").strip() and legacy_url:
@@ -138,6 +141,14 @@ class AppConfig:
     def projects_dir(self) -> Path:
         return self.resolve_app_path(self.get("project_output_path", "projects"))
 
+    @property
+    def capcut_projects_path(self) -> Path | None:
+        raw = str(self.get("capcut_projects_path") or "").strip()
+        if not raw:
+            return None
+        p = Path(raw)
+        return p if p.is_dir() else None
+
     def project_dir(self, project_name: str) -> Path:
         return self.projects_dir / project_name
 
@@ -147,6 +158,10 @@ class AppConfig:
     @property
     def ffprobe_path(self) -> str:
         return self.get("ffprobe_path")
+
+    @property
+    def ffmpeg_path(self) -> str:
+        return str(self.get("ffmpeg_path") or "ffmpeg")
 
     @property
     def capcut_tts_path(self) -> str:

@@ -23,8 +23,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QSplitter,
     QStyleFactory,
-    QTableWidget,
-    QTableWidgetItem,
+    QTableView,
     QVBoxLayout,
     QWidget,
 )
@@ -67,17 +66,8 @@ from core.capcut_project.tts_project_service import CapCutProjectTtsService  # n
 from core.config import AppConfig  # noqa: E402
 from core.i18n import set_language, tr  # noqa: E402
 from core.logger import logger  # noqa: E402
+from ui.caption_table_model import CaptionFilterProxy, CaptionTableModel  # noqa: E402
 from ui.settings_dialog import SettingsDialog  # noqa: E402
-
-
-def _fmt_us(us: int) -> str:
-    total_ms = max(0, int(round(us / 1000.0)))
-    hours, rem = divmod(total_ms, 3_600_000)
-    minutes, rem = divmod(rem, 60_000)
-    secs, ms = divmod(rem, 1000)
-    if hours:
-        return f"{hours:02d}:{minutes:02d}:{secs:02d}.{ms:03d}"
-    return f"{minutes:02d}:{secs:02d}.{ms:03d}"
 
 
 class UiState(Enum):
@@ -158,6 +148,82 @@ class GenerateWorker(QThread):
             self.failed.emit(str(e))
 
 
+class SplitWorker(QThread):
+    progress = Signal(float, str)
+    finished_ok = Signal(object)
+    failed = Signal(str)
+
+    def __init__(
+        self,
+        source_project_dir: Path,
+        source_draft: dict,
+        source_draft_path: Path,
+        caption_edges_us: list[int] | None = None,
+    ):
+        super().__init__()
+        self.source_project_dir = source_project_dir
+        self.source_draft = source_draft
+        self.source_draft_path = source_draft_path
+        self.caption_edges_us = caption_edges_us or []
+        self._cancel = False
+
+    def cancel(self):
+        self._cancel = True
+
+    def run(self):
+        try:
+            from core.capcut_project.project_split import split_project
+
+            def prog_cb(p: float, msg: str):
+                self.progress.emit(p, msg)
+
+            result = split_project(
+                source_project_dir=self.source_project_dir,
+                source_draft=self.source_draft,
+                source_draft_path=self.source_draft_path,
+                caption_edges_us=self.caption_edges_us,
+                progress_callback=prog_cb,
+            )
+            self.finished_ok.emit(result)
+        except Exception as e:
+            logger.exception("Split worker failed")
+            self.failed.emit(str(e))
+
+
+class MergeWorker(QThread):
+    progress = Signal(float, str)
+    finished_ok = Signal(object)
+    failed = Signal(str)
+
+    def __init__(self, inputs: list[str], output: str, ffmpeg_path: str | None = None):
+        super().__init__()
+        self.inputs = inputs
+        self.output = output
+        self.ffmpeg_path = ffmpeg_path
+        self._cancel = False
+
+    def cancel(self):
+        self._cancel = True
+
+    def run(self):
+        try:
+            from core.capcut_project.video_merge import merge_videos
+
+            def prog_cb(p: float, msg: str):
+                self.progress.emit(p, msg)
+
+            result = merge_videos(
+                self.inputs,
+                self.output,
+                ffmpeg_path=self.ffmpeg_path,
+                progress_callback=prog_cb,
+            )
+            self.finished_ok.emit(result)
+        except Exception as e:
+            logger.exception("Merge worker failed")
+            self.failed.emit(str(e))
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -168,19 +234,26 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1024, 720)
         self.resize(1280, 860)
         self.service = CapCutProjectTtsService()
-        self.worker: Optional[GenerateWorker] = None
+        self.worker: Optional[QThread] = None
         self._captions = []
         self._voices = []
-        self._row_by_index: dict[int, int] = {}
         self._closing = False
         self._ui_state = UiState.IDLE_NO_PROJECT
         self._advanced_open = False
-        # Batch per-item table updates so 2k captions don't flood the UI thread.
+        self._caption_model = CaptionTableModel(self)
+        self._caption_proxy = CaptionFilterProxy(self)
+        self._caption_proxy.setSourceModel(self._caption_model)
+        # Batch per-item table updates so 5k captions don't flood the UI thread.
         self._pending_item_updates: dict[int, dict] = {}
         self._item_flush_timer = QTimer(self)
         self._item_flush_timer.setSingleShot(True)
         self._item_flush_timer.setInterval(80)
         self._item_flush_timer.timeout.connect(self._flush_item_updates)
+        # Debounce caption search/filter (textChanged is per keystroke).
+        self._filter_timer = QTimer(self)
+        self._filter_timer.setSingleShot(True)
+        self._filter_timer.setInterval(120)
+        self._filter_timer.timeout.connect(self._filter_table)
         self._init_ui()
         self._connect_ui_signals()
         self._apply_ui_state(UiState.IDLE_NO_PROJECT)
@@ -290,10 +363,21 @@ class MainWindow(QMainWindow):
         self.btn_export_srt = PushButton(tr("export_srt"))
         self.btn_export_srt.setToolTip("Xuất toàn bộ caption trong project thành file phụ đề .srt")
 
+        self.btn_split = PushButton(tr("split_project"))
+        self.btn_split.setToolTip(
+            "Tách project thành 2 nửa theo timeline (part1/part2) để export CapCut nhẹ hơn."
+        )
+        self.btn_merge = PushButton(tr("merge_videos"))
+        self.btn_merge.setToolTip(
+            "Ghép 2 video đã export (ffmpeg stream-copy, fallback re-encode)."
+        )
+
         row.addWidget(self.ed_project, 1)
         row.addWidget(self.btn_browse)
         row.addWidget(self.btn_reload)
         row.addWidget(self.btn_export_srt)
+        row.addWidget(self.btn_split)
+        row.addWidget(self.btn_merge)
 
         self.lbl_info = self._muted_label(tr("no_project"))
         self.lbl_info.setWordWrap(True)
@@ -514,10 +598,8 @@ class MainWindow(QMainWindow):
         self.lbl_selection.setFont(sf)
         cap_l.addWidget(self.lbl_selection)
 
-        self.table = QTableWidget(0, 9)
-        self.table.setHorizontalHeaderLabels(
-            ["", "#", tr("table_start"), tr("table_end"), tr("table_content"), tr("table_has_tts"), tr("table_status"), tr("table_duration"), tr("table_error")]
-        )
+        self.table = QTableView()
+        self.table.setModel(self._caption_proxy)
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
@@ -530,9 +612,15 @@ class MainWindow(QMainWindow):
         header.setSectionResizeMode(8, QHeaderView.Interactive)
         self.table.setColumnWidth(8, 140)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.verticalHeader().setVisible(False)
+        self.table.verticalHeader().setDefaultSectionSize(28)
         self.table.setAlternatingRowColors(True)
+        # Fixed row height ≈ uniform rows (QTableView has no setUniformRowHeights).
+        self.table.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
+        self.table.setWordWrap(False)
+        self.table.setShowGrid(False)
         self.table.setMinimumHeight(220)
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         cap_l.addWidget(self.table, 1)
@@ -602,19 +690,21 @@ class MainWindow(QMainWindow):
         self.btn_browse.clicked.connect(self._browse_project)
         self.btn_reload.clicked.connect(self._reload_project)
         self.btn_export_srt.clicked.connect(self._export_srt)
+        self.btn_split.clicked.connect(self._split_project)
+        self.btn_merge.clicked.connect(self._merge_videos)
         self.cmb_lang.currentIndexChanged.connect(self._refresh_voice_combo)
         self.ed_voice_search.textChanged.connect(self._refresh_voice_combo)
         self.cmb_voice.currentIndexChanged.connect(self._on_voice_changed)
         self.btn_advanced.clicked.connect(self._toggle_advanced)
         self.chk_align.stateChanged.connect(self._on_align_toggled)
         self.sp_trim_frames.valueChanged.connect(self._update_align_hint)
-        self.ed_search.textChanged.connect(self._filter_table)
+        self.ed_search.textChanged.connect(self._schedule_filter)
         self.btn_select_all.clicked.connect(self._on_select_all)
         self.btn_deselect_all.clicked.connect(self._on_deselect_all)
-        self.chk_hide_empty.stateChanged.connect(self._filter_table)
-        self.chk_only_no_tts.stateChanged.connect(self._filter_table)
-        self.chk_only_errors.stateChanged.connect(self._filter_table)
-        self.table.itemChanged.connect(self._on_table_item_changed)
+        self.chk_hide_empty.stateChanged.connect(self._schedule_filter)
+        self.chk_only_no_tts.stateChanged.connect(self._schedule_filter)
+        self.chk_only_errors.stateChanged.connect(self._schedule_filter)
+        self._caption_model.dataChanged.connect(self._on_table_data_changed)
         self.btn_log_clear.clicked.connect(self._clear_log)
         self.btn_log_copy.clicked.connect(self._copy_log)
         self.btn_log_save.clicked.connect(self._save_log)
@@ -648,6 +738,8 @@ class MainWindow(QMainWindow):
             self.btn_cancel.setText(tr("cancel"))
             self.btn_reload.setEnabled(bool(self.ed_project.text().strip()))
             self.btn_export_srt.setEnabled(False)
+            self.btn_split.setEnabled(False)
+            self.btn_merge.setEnabled(True)  # merge only needs exported videos
             self.btn_browse.setEnabled(True)
             self.lbl_progress.setText(tr("ready"))
         elif state == UiState.IDLE_READY:
@@ -657,6 +749,8 @@ class MainWindow(QMainWindow):
             self.btn_cancel.setText(tr("cancel"))
             self.btn_reload.setEnabled(True)
             self.btn_export_srt.setEnabled(True)
+            self.btn_split.setEnabled(True)
+            self.btn_merge.setEnabled(True)
             self.btn_browse.setEnabled(True)
         elif state == UiState.GENERATING:
             self.btn_generate.setEnabled(False)
@@ -665,6 +759,8 @@ class MainWindow(QMainWindow):
             self.btn_cancel.setText(tr("cancel"))
             self.btn_reload.setEnabled(False)
             self.btn_export_srt.setEnabled(False)
+            self.btn_split.setEnabled(False)
+            self.btn_merge.setEnabled(False)
             self.btn_browse.setEnabled(False)
         elif state == UiState.CANCELLING:
             self.btn_generate.setEnabled(False)
@@ -673,6 +769,8 @@ class MainWindow(QMainWindow):
             self.btn_cancel.setText(tr("cancel"))
             self.btn_reload.setEnabled(False)
             self.btn_export_srt.setEnabled(False)
+            self.btn_split.setEnabled(False)
+            self.btn_merge.setEnabled(False)
             self.btn_browse.setEnabled(False)
 
         # Settings + caption selection only when idle (table still scrollable)
@@ -694,21 +792,13 @@ class MainWindow(QMainWindow):
             self.chk_only_errors,
         ):
             w.setEnabled(not busy)
-        # Freeze checkbox column during run to avoid selection drift vs snapshot
+        # Freeze checkboxes during run to avoid selection drift vs snapshot
+        self._caption_model.set_checks_enabled(not busy)
         if busy:
-            self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-            for row in range(self.table.rowCount()):
-                item = self.table.item(row, 0)
-                if item is not None:
-                    item.setFlags(Qt.ItemIsEnabled)  # no ItemIsUserCheckable
             self.sp_trim_frames.setEnabled(False)
             self.sp_fade_ms.setEnabled(False)
             self.lbl_align_hint.setEnabled(False)
         else:
-            for row in range(self.table.rowCount()):
-                item = self.table.item(row, 0)
-                if item is not None:
-                    item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
             self._on_align_toggled(self.chk_align.checkState())
 
         _ = has_project
@@ -745,15 +835,15 @@ class MainWindow(QMainWindow):
     def _on_deselect_all(self):
         self._select_all(False)
 
-    def _on_table_item_changed(self, *_args):
+    def _on_table_data_changed(self, *_args):
         self._update_selection_label()
 
     def _clear_log(self):
         self.log.clear()
 
     def _update_empty_state(self):
-        total = self.table.rowCount()
-        visible = sum(1 for r in range(total) if not self.table.isRowHidden(r))
+        total = self._caption_model.rowCount()
+        visible = self._caption_proxy.rowCount()
         if total == 0:
             self.lbl_table_empty.setText("Chưa có caption — chọn project để bắt đầu.")
             self.lbl_table_empty.setVisible(True)
@@ -818,15 +908,32 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     # Project
     # ------------------------------------------------------------------
+    def _default_project_dir(self) -> str:
+        """Start folder for CapCut project pickers (AutoVideo outputs / last project)."""
+        cur = self.ed_project.text().strip()
+        if cur:
+            p = Path(cur)
+            if p.is_file():
+                return str(p.parent)
+            if p.is_dir():
+                return str(p)
+        cfg = self.config.capcut_projects_path
+        if cfg is not None:
+            return str(cfg)
+        return ""
+
     def _browse_project(self):
+        start = self._default_project_dir()
         path, _ = QFileDialog.getOpenFileName(
             self,
             "Chọn draft_content.json (hoặc Hủy để chọn thư mục)",
-            "",
+            start,
             "CapCut Draft (draft_content.json);;JSON (*.json);;All (*.*)",
         )
         if not path:
-            dir_path = QFileDialog.getExistingDirectory(self, "Chọn thư mục project CapCut")
+            dir_path = QFileDialog.getExistingDirectory(
+                self, "Chọn thư mục project CapCut", start
+            )
             if not dir_path:
                 return
             path = dir_path
@@ -865,6 +972,156 @@ class MainWindow(QMainWindow):
 
         self._append_log("SUCCESS", f"Đã xuất {count} caption: {output_path}", stage="SRT")
         self._notify("success", "Đã xuất SRT", f"{count} caption · {output_path}", duration=4000)
+
+    def _split_project(self):
+        info = self.service._info
+        if info is None or self.service.reader.draft is None:
+            self._notify("warning", "Chưa có project", "Hãy chọn project CapCut trước.")
+            return
+        if self.worker and self.worker.isRunning():
+            return
+        try:
+            source_draft = self.service.reader.get_draft_copy()
+        except Exception as e:
+            self._notify("error", "Không đọc draft", str(e))
+            return
+
+        total_us = int(source_draft.get("duration") or info.duration_us or 0)
+        if total_us < 2_000_000:
+            self._notify("warning", "Project quá ngắn", "Cần ít nhất ~2s để tách 2 phần.")
+            return
+
+        part1 = info.project_directory.parent / f"{info.project_directory.name}_part1"
+        part2 = info.project_directory.parent / f"{info.project_directory.name}_part2"
+        if part1.exists() or part2.exists():
+            box = QMessageBox(self)
+            box.setIcon(QMessageBox.Warning)
+            box.setWindowTitle(tr("split_project"))
+            box.setText(
+                f"Thư mục đích đã tồn tại:\n{part1.name} / {part2.name}\n\n"
+                "Xóa chúng rồi chạy lại, hoặc đổi tên project nguồn."
+            )
+            box.addButton(tr("cancel"), QMessageBox.RejectRole)
+            box.exec()
+            return
+
+        edges = [c.start_us for c in self._captions if c.start_us > 0]
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Question)
+        box.setWindowTitle(tr("split_project"))
+        box.setText(
+            "Tách project thành 2 bản copy (part1 / part2) theo mốc giữa timeline.\n"
+            "Project gốc không bị sửa.\n\n"
+            f"Nguồn: {info.project_directory.name}\n"
+            f"Thời lượng: {info.duration_display}\n"
+            f"Xuất ra:\n  {part1}\n  {part2}\n\n"
+            "Sau đó mở từng part trong CapCut → Export → dùng Ghép video."
+        )
+        ok = box.addButton("Tách", QMessageBox.AcceptRole)
+        box.addButton(tr("cancel"), QMessageBox.RejectRole)
+        box.exec()
+        if box.clickedButton() is not ok:
+            return
+
+        self.progress.setValue(0)
+        self.lbl_progress.setText(tr("split_project"))
+        self._apply_ui_state(UiState.GENERATING)
+
+        self.worker = SplitWorker(
+            source_project_dir=info.project_directory,
+            source_draft=source_draft,
+            source_draft_path=info.draft_path,
+            caption_edges_us=edges,
+        )
+        self.worker.progress.connect(self._on_progress)
+        self.worker.finished_ok.connect(self._on_split_finished)
+        self.worker.failed.connect(self._on_failed)
+        self.worker.start()
+
+    def _on_split_finished(self, result):
+        if self._closing:
+            return
+        self.worker = None
+        self.progress.setValue(1000)
+        self.lbl_progress.setText(tr("ready"))
+        self._apply_ui_state(UiState.IDLE_READY)
+        cut_s = result.cut_us / 1_000_000.0
+        self._append_log(
+            "SUCCESS",
+            f"Đã tách tại {cut_s:.2f}s → {result.part1_dir.name} ({result.part1_segments} seg) + "
+            f"{result.part2_dir.name} ({result.part2_segments} seg)",
+            stage="Split",
+        )
+        self._append_log("INFO", f"Part1: {result.part1_dir}", stage="Split")
+        self._append_log("INFO", f"Part2: {result.part2_dir}", stage="Split")
+        self._notify(
+            "success",
+            "Đã tách project",
+            f"{result.part1_dir.name} + {result.part2_dir.name}",
+            duration=6000,
+        )
+
+    def _merge_videos(self):
+        if self.worker and self.worker.isRunning():
+            return
+        paths, _ = QFileDialog.getOpenFileNames(
+            self,
+            tr("merge_videos"),
+            "",
+            "Video (*.mp4 *.mov *.mkv *.m4v);;All (*.*)",
+        )
+        if not paths:
+            return
+        if len(paths) < 2:
+            self._notify("warning", tr("merge_videos"), "Chọn ít nhất 2 video (theo thứ tự part1 → part2).")
+            return
+
+        default_out = str(Path(paths[0]).with_name(Path(paths[0]).stem + "_merged.mp4"))
+        out_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Lưu video đã ghép",
+            default_out,
+            "MP4 (*.mp4);;All (*.*)",
+        )
+        if not out_path:
+            return
+        if Path(out_path).suffix.lower() not in {".mp4", ".mov", ".mkv", ".m4v"}:
+            out_path += ".mp4"
+
+        self.progress.setValue(0)
+        self.lbl_progress.setText(tr("merge_videos"))
+        self._apply_ui_state(UiState.GENERATING)
+
+        ff = "ffmpeg"
+        try:
+            ff = AppConfig().ffmpeg_path
+        except Exception:
+            pass
+
+        self.worker = MergeWorker(inputs=paths, output=out_path, ffmpeg_path=ff)
+        self.worker.progress.connect(self._on_progress)
+        self.worker.finished_ok.connect(self._on_merge_finished)
+        self.worker.failed.connect(self._on_failed)
+        self.worker.start()
+
+    def _on_merge_finished(self, result):
+        if self._closing:
+            return
+        self.worker = None
+        self.progress.setValue(1000)
+        self.lbl_progress.setText(tr("ready"))
+        # Restore ready/no-project based on whether a project is loaded
+        if self.service._info is not None:
+            self._apply_ui_state(UiState.IDLE_READY)
+        else:
+            self._apply_ui_state(UiState.IDLE_NO_PROJECT)
+        mode = "re-encode" if result.used_reencode else "stream-copy"
+        self._append_log(
+            "SUCCESS",
+            f"Đã ghép video ({mode}): {result.output_path}",
+            stage="Merge",
+        )
+        self._notify("success", "Đã ghép video", f"{mode} · {result.output_path}", duration=6000)
 
     def _set_project_info(self, info) -> None:
         """Theme-safe plain-text summary (no hardcoded HTML colors)."""
@@ -915,89 +1172,33 @@ class MainWindow(QMainWindow):
             self._append_log("INFO", line, stage="Project")
 
     def _populate_table(self):
-        self.table.blockSignals(True)
-        self.table.setRowCount(0)
-        self._row_by_index.clear()
-        for cap in self._captions:
-            row = self.table.rowCount()
-            self.table.insertRow(row)
-            self._row_by_index[cap.index] = row
-
-            chk = QTableWidgetItem()
-            chk.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
-            default_on = not cap.is_empty
-            chk.setCheckState(Qt.Checked if default_on else Qt.Unchecked)
-            self.table.setItem(row, 0, chk)
-            self.table.setItem(row, 1, QTableWidgetItem(str(cap.index)))
-            self.table.setItem(row, 2, QTableWidgetItem(_fmt_us(cap.start_us)))
-            self.table.setItem(row, 3, QTableWidgetItem(_fmt_us(cap.end_us)))
-            text_item = QTableWidgetItem(cap.text.replace("\n", " "))
-            self.table.setItem(row, 4, text_item)
-            self.table.setItem(
-                row, 5, QTableWidgetItem(tr("yes") if cap.has_existing_tts else tr("no"))
-            )
-            if cap.is_empty:
-                status = tr("empty")
-            elif cap.has_existing_tts:
-                status = tr("has_tts")
-            else:
-                status = tr("ready")
-            self.table.setItem(row, 6, QTableWidgetItem(status))
-            self.table.setItem(row, 7, QTableWidgetItem(""))
-            self.table.setItem(row, 8, QTableWidgetItem(""))
-            self.table.item(row, 1).setData(Qt.UserRole, cap.text_segment_id)
-        self.table.blockSignals(False)
+        self._caption_model.set_captions(self._captions)
         self._filter_table()
 
+    def _schedule_filter(self, *_args):
+        self._filter_timer.start()
+
     def _filter_table(self):
-        q = self.ed_search.text().strip().lower()
-        hide_empty = self.chk_hide_empty.isChecked()
-        only_no = self.chk_only_no_tts.isChecked()
-        only_err = self.chk_only_errors.isChecked()
-        for row in range(self.table.rowCount()):
-            text = self.table.item(row, 4).text().lower()
-            existing_txt = self.table.item(row, 5).text()
-            existing = existing_txt in {"Yes", "Có", tr("yes")}
-            status = self.table.item(row, 6).text()
-            empty = status in {"Empty", "Rỗng", tr("empty")}
-            is_error = status in {"Failed", "Lỗi", "Thất bại", tr("error")} or bool(
-                (self.table.item(row, 8).text() or "").strip()
-            )
-            hide = False
-            if q and q not in text:
-                hide = True
-            if hide_empty and empty:
-                hide = True
-            if only_no and existing:
-                hide = True
-            if only_err and not is_error:
-                hide = True
-            self.table.setRowHidden(row, hide)
+        self._caption_proxy.set_filters(
+            query=self.ed_search.text(),
+            hide_empty=self.chk_hide_empty.isChecked(),
+            only_no_tts=self.chk_only_no_tts.isChecked(),
+            only_errors=self.chk_only_errors.isChecked(),
+        )
         self._update_selection_label()
         self._update_empty_state()
 
     def _update_selection_label(self):
-        total = self.table.rowCount()
-        selected = 0
-        visible = 0
-        for row in range(total):
-            if not self.table.isRowHidden(row):
-                visible += 1
-            item = self.table.item(row, 0)
-            if item and item.checkState() == Qt.Checked:
-                selected += 1
-        self.lbl_selection.setText(tr("selection", selected=selected, total=total, visible=visible))
+        selected, total, _ = self._caption_model.selection_counts()
+        visible = self._caption_proxy.rowCount()
+        self.lbl_selection.setText(
+            tr("selection", selected=selected, total=total, visible=visible)
+        )
 
     def _select_all(self, on: bool):
-        self.table.blockSignals(True)
-        for row in range(self.table.rowCount()):
-            if self.table.isRowHidden(row):
-                continue
-            status = self.table.item(row, 6).text()
-            if on and status in {"Empty", "Rỗng", tr("empty")}:
-                continue
-            self.table.item(row, 0).setCheckState(Qt.Checked if on else Qt.Unchecked)
-        self.table.blockSignals(False)
+        # Only touch currently visible (filtered) rows — matches old behavior.
+        rows = sorted(self._caption_proxy.visible_source_rows())
+        self._caption_model.set_all_checked(on, only_rows=rows)
         self._update_selection_label()
 
     # ------------------------------------------------------------------
@@ -1024,12 +1225,7 @@ class MainWindow(QMainWindow):
             else:
                 return
 
-        selected: list[str] = []
-        for row in range(self.table.rowCount()):
-            if self.table.item(row, 0).checkState() == Qt.Checked:
-                sid = self.table.item(row, 1).data(Qt.UserRole)
-                if sid:
-                    selected.append(str(sid))
+        selected = self._caption_model.selected_segment_ids()
         if not selected:
             self._notify("warning", "Chưa chọn caption", "Chọn ít nhất một caption để tạo TTS.")
             return
@@ -1109,8 +1305,13 @@ class MainWindow(QMainWindow):
             p = min(p, 0.99)
             if self._ui_state != UiState.CANCELLING:
                 self._apply_ui_state(UiState.CANCELLING)
-        self.progress.setValue(int(p * 1000))
-        self.lbl_progress.setText(f"{p * 100:.0f}% {msg}".strip())
+        value = int(p * 1000)
+        label = f"{p * 100:.0f}% {msg}".strip()
+        # Skip no-op bar repaints when consecutive signals map to the same tick.
+        if value == self.progress.value() and label == self.lbl_progress.text():
+            return
+        self.progress.setValue(value)
+        self.lbl_progress.setText(label)
 
     def _on_item(self, idx: int, res: dict):
         if self._closing:
@@ -1126,28 +1327,9 @@ class MainWindow(QMainWindow):
             return
         pending = self._pending_item_updates
         self._pending_item_updates = {}
-        self.table.setUpdatesEnabled(False)
-        try:
-            need_filter = self.chk_only_errors.isChecked()
-            for idx, res in pending.items():
-                row = self._row_by_index.get(int(idx))
-                if row is None:
-                    continue
-                status = res.get("status", "")
-                dur = float(res.get("duration") or 0.0)
-                if status == "Cached":
-                    self.table.item(row, 6).setText("Cache")
-                elif status == "Failed":
-                    self.table.item(row, 6).setText("Lỗi")
-                    self.table.item(row, 8).setText(str(res.get("error") or ""))
-                else:
-                    self.table.item(row, 6).setText("Đã tạo")
-                if dur > 0:
-                    self.table.item(row, 7).setText(f"{dur:.2f}s")
-            if need_filter:
-                self._filter_table()
-        finally:
-            self.table.setUpdatesEnabled(True)
+        self._caption_model.apply_item_results(pending)
+        if self.chk_only_errors.isChecked():
+            self._filter_table()
 
     def _on_finished(self, result: GenerationResult):
         if self._closing:
@@ -1198,11 +1380,12 @@ class MainWindow(QMainWindow):
         if self._closing:
             self.worker = None
             return
+        self.worker = None
         self._item_flush_timer.stop()
         self._flush_item_updates()
         ready = UiState.IDLE_READY if self.ed_project.text().strip() else UiState.IDLE_NO_PROJECT
         self._apply_ui_state(ready)
-        self.btn_generate.setText("Tạo và gắn TTS")
+        self.btn_generate.setText(tr("generate_attach"))
         self.lbl_progress.setText("Lỗi")
         self._notify("error", "Lỗi", msg, duration=8000)
 
