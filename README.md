@@ -29,7 +29,7 @@
   <img alt="text-to-speech" src="https://img.shields.io/badge/text--to--speech-120%2B%20voices-success">
   <img alt="free" src="https://img.shields.io/badge/TTS-free%20%28no%20paid%20API%29-brightgreen">
   <img alt="desktop" src="https://img.shields.io/badge/desktop-PySide6-orange">
-  <img alt="video" src="https://img.shields.io/badge/video-editing-lightgrey">
+  <img alt="split-merge" src="https://img.shields.io/badge/export-split%20%2B%20ffmpeg%20merge-blueviolet">
 </p>
 
 ---
@@ -41,43 +41,45 @@ CapCut already has many TTS voices. CapDraft TTS lets you use them on your capti
 - **120+ CapCut voices**
 - **No extra paid voice API**
 - Reads captions from your CapCut project and writes audio back into the same timeline
-- Exports project captions directly to a standard `.srt` subtitle file
-- No project copy, no manual drag-and-drop of audio files
+- Handles large projects (thousands of captions) with a virtualized table and slimmer drafts for export
+- **Split** a huge project into 2 CapCut-openable halves, export each in CapCut, then **merge** the videos with ffmpeg
+- Exports captions to `.srt`
+- No project copy for normal TTS attach — no manual drag-and-drop of audio files
 
 > You still need CapCut Desktop and internet. “Free” means the app does not require a separate paid TTS service.
 
 ## Features
 
-- Open a CapCut project folder or `draft_content.json`
-- Caption list with search, select-all, empty / no-TTS / error filters
-- Online voice catalog (~120+ voices) with language filter + search
-- TTS rate, CapCut clip speed, pitch mode (follow speed / preserve pitch)
-- Replace existing TTS or skip captions that already have TTS
-- Optional audio cache and native CapCut head-alignment
-- Parallel generation, cancel, progress log
-- Backup + atomic save with rollback on failed write
-- Vietnamese, English, Chinese, and Japanese UI
-- Follow Windows, light, or dark theme with Windows Blue accent
+| Area | What you get |
+|------|----------------|
+| **Project** | Open CapCut project folder or `draft_content.json` (incl. modern `Timelines/` layout) |
+| **Captions** | Virtualized table for ~5k rows; search; select all; hide empty / without TTS / errors only |
+| **Voices** | Online catalog (~120+), language filter + search |
+| **TTS** | Clip speed, pitch mode, replace or skip existing TTS, optional cache, native head trim/fade |
+| **Pipeline** | Parallel generation, cancel, throttled progress log, backup + atomic write with rollback |
+| **Export helpers** | **Split in 2** CapCut-safe projects · **Merge videos** (ffmpeg stream-copy, re-encode fallback) · **Export SRT** |
+| **UI** | VI / EN / ZH / JA · Windows light/dark/auto theme |
 
 ## Requirements
 
-- Windows 10/11
-- CapCut Desktop + a project that already has captions
-- FFprobe is optional and only used as a fallback for reading cached audio duration
-- Internet connection
+- **Windows** 10/11
+- **CapCut Desktop** + a project that already has captions
+- **Internet** (TTS + voice catalog)
+- **ffmpeg** on `PATH` (or set `ffmpeg_path` in config) — only needed for **Merge videos**
+- **ffprobe** optional — fallback for cached audio duration
 
-Source development needs [`uv`](https://docs.astral.sh/uv/); it installs the matching Python environment and locked dependencies automatically.
+Source development needs [`uv`](https://docs.astral.sh/uv/).
 
 ## Install
 
 ### Prebuilt (recommended)
 
-1. Download `CapDraft-TTS-v1.1.1-windows-x64.zip` from [Releases](https://github.com/KhoaDayy/CapDraft-TTS/releases)
+1. Download the latest `CapDraft-TTS-v*-windows-x64.zip` from [Releases](https://github.com/KhoaDayy/CapDraft-TTS/releases/latest)
 2. Unzip and run `CapDraft-TTS.exe`
-3. Choose a CapCut project and start working; normal use does not require editing `config.json`.
+3. Choose a CapCut project and start; normal use does not require editing `config.json`
 
 ```powershell
-Get-FileHash .\CapDraft-TTS-v1.1.1-windows-x64.zip -Algorithm SHA256
+Get-FileHash .\CapDraft-TTS-v1.2.4-windows-x64.zip -Algorithm SHA256
 # compare with the .sha256 file from the release
 ```
 
@@ -91,25 +93,51 @@ Copy-Item config.example.json config.json
 uv run python main.py
 ```
 
+Optional `config.json` keys (see `config.example.json`):
+
+| Key | Purpose |
+|-----|---------|
+| `capcut_projects_path` | Default folder when browsing projects (e.g. CapCut drafts or AutoVideo `outputs`) |
+| `ffmpeg_path` | Path to `ffmpeg` for video merge |
+| `ffprobe_path` | Path to `ffprobe` |
+| `tts_chunk_size` / `tts_parallel_chunks` / `tts_download_workers` | Performance |
+| `language` / `theme_mode` | UI |
+
 ## Usage
 
-1. **Chọn project** → CapCut project folder or `draft_content.json`
+### Generate TTS
+
+1. **Choose project** → CapCut project folder or `draft_content.json`
 2. Review / filter captions
-3. Use **Xuất SRT** to save every non-empty caption as a subtitle file, or continue with TTS
-4. Pick language + voice (120+ CapCut voices from the online catalog)
-5. Set rate, clip speed, pitch, and existing-TTS policy
-6. Select captions → **Tạo và gắn TTS**
-7. Close the project in CapCut before write, then reopen CapCut to check the timeline
+3. Pick language + voice
+4. Set clip speed, pitch, existing-TTS policy
+5. Select captions → **Generate and attach TTS**
+6. **Close the project in CapCut** before write, then reopen CapCut to check the timeline
+
+### Large projects that fail CapCut export
+
+When CapCut export is too heavy (e.g. multi-hour fail on a big timeline):
+
+1. Load the project in CapDraft TTS (after TTS is attached is fine)
+2. Click **Split in 2** → creates `<name>_part1` and `<name>_part2` next to the source (source is not modified)
+3. Fully quit CapCut, reopen, open each part → **Export** video
+4. Click **Merge videos** → pick part1 then part2 exports → save one MP4 (ffmpeg; stream-copy when possible)
 
 > [!IMPORTANT]
-> Close the CapCut project before writing. CapDraft TTS keeps local backups, but keep your own backup of important drafts.
+> Close CapCut (or at least the project) before TTS write or split. CapDraft keeps local backups for TTS writes, but keep your own backup of important drafts.
+
+### Export SRT
+
+**Export SRT** saves non-empty captions from the loaded project to a standard `.srt` file.
 
 ## Development
 
 ```powershell
 uv run python -m unittest discover -s tests -v
-.\build-release.ps1 -Version 1.1.1
+.\build-release.ps1 -Version 1.2.4
 ```
+
+Releases: push a `v*` tag (or run **Release** workflow_dispatch). CI builds Windows zip + publishes GitHub Release (see `.github/workflows/release.yml`).
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CHANGELOG.md`](CHANGELOG.md).
 
