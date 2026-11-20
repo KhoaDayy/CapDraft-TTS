@@ -68,6 +68,25 @@ jobs:
       - name: Build app
         run: cargo build --release --locked -p capdraft-app
 
+      # Same layout as the release zip: the exe with device.json next to it.
+      - name: Stage app
+        working-directory: .
+        shell: pwsh
+        run: |
+          $Stage = "ci-out\CapDraft-TTS-rust"
+          New-Item -ItemType Directory -Force "$Stage\external\capcut-tts-api" | Out-Null
+          Copy-Item "rust\target\release\CapDraft-TTS.exe" $Stage
+          Copy-Item "external\capcut-tts-api\device.json" "$Stage\external\capcut-tts-api"
+
+      # Downloadable from the run's Summary page (Artifacts) for 14 days.
+      - name: Upload app
+        uses: actions/upload-artifact@v4
+        with:
+          name: CapDraft-TTS-rust-windows-x64-${{ github.sha }}
+          path: ci-out/CapDraft-TTS-rust/
+          retention-days: 14
+          if-no-files-found: error
+
   # Python app (the current release): unittest suite, as in CONTRIBUTING.md.
   python-test:
     runs-on: windows-latest
