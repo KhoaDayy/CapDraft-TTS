@@ -1,0 +1,198 @@
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 1.0, "7102355709945188865"], "ok": "697548fe6e51623b09dc8ed6b0703e079a1096796b122c85a61799f5562cd041"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 1.0, ""], "ok": "4b04300b72c86ff26e79074e54f71deae2bb16a24064db45b434221fb6ec7e19"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 0.125, "7102355709945188865"], "ok": "56f050adcdbeacd9a122c601bef692a720f58a10d4f5ec5956e3b45edf6dcef6"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 0.125, ""], "ok": "1ed9d610e8f8147a06b4d956fcd3e38a41f3fccc3db5d331f7948b1224efb49c"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 0.375, "7102355709945188865"], "ok": "4a0f9e96a02b70afc5c0d67615dd4f50b8dc3e0f764b1102ed56a9c6f06b5253"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 0.375, ""], "ok": "85681ce620c0631b8735391b1327e922cf9ad0449d06292e64ecde8d535535e2"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 1.005, "7102355709945188865"], "ok": "697548fe6e51623b09dc8ed6b0703e079a1096796b122c85a61799f5562cd041"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 1.005, ""], "ok": "4b04300b72c86ff26e79074e54f71deae2bb16a24064db45b434221fb6ec7e19"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 2.675, "7102355709945188865"], "ok": "270ad16c0f97115bd2361a32548cea65d3bb3c3f6737e352774ee573606a7c45"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 2.675, ""], "ok": "3b3d43b22dde4766166b29c1558e5127bc30386736e7cafbbd2ea69c56b02fc0"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 1.115, "7102355709945188865"], "ok": "e68f8c96589195dd20cfa0ef798fb8ea4eae9a7ec94ae61e73fe50917c6992f4"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 1.115, ""], "ok": "c6f4d2435bd8783a89479d3f7b3667abba99e9d8791bc8ec327e10c8daf525fb"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 0.5, "7102355709945188865"], "ok": "b27b548a2cb4ebe8c13072d821ccc865a4a3ab33c14a4ecd3c8a7cf6e83fcaab"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 0.5, ""], "ok": "2c608986ee89306de6fbf7acb0e3216e147656b95455f854cea85926d9368afc"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 1.255, "7102355709945188865"], "ok": "4e58a2e0944c2b2ebe564e4ccb52ddf6d3e91775c81df2c6624e853bcc22d9e3"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 1.255, ""], "ok": "38e6ea1b7f29a96a32f8309b7629f1797b2036f1594d57d67f1b139eb5e5f8ee"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 10.0, "7102355709945188865"], "ok": "e3f3aef5e3038fa39d82a4aa8ce7bd0ec5b445815d9b67fedc44f5627d30a837"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 10.0, ""], "ok": "ecd56f14ec463291941e4f741c908d616fcbdccef27920808ad1f1913d371b84"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", -0.005, "7102355709945188865"], "ok": "5c0bb6ec08f3e1d4dbbef402a51a2c04beb79deb1af1f7554e02bafbf44ae20c"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", -0.005, ""], "ok": "263fa4b8a329fb8597549dc2782f4720ee71c65db489d926474a6035610bdf8c"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 1e-09, "7102355709945188865"], "ok": "a8c6bc7b3c7d06af058411493af2d4a79dd39af25f547c569d5e7e65a1fc9b36"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 1e-09, ""], "ok": "1904b9e2696f1fe0c6d059fa93426d8b487553bcc8c014fd813adff07cccd5bd"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 123.456, "7102355709945188865"], "ok": "a8930006f15f7845ae64ddd97d612bd879bdb87776392d0f5ca4324c87ed9b56"}
+{"fn": "generate_hash", "args": ["Xin chào", "BV074_streaming", 123.456, ""], "ok": "a0485760e8ab7abe59be360cfa6747e0d4f11466719f197ed31a3d51cd233365"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 1.0, "7102355709945188865"], "ok": "b5b1516960d75dea8e3646cfaefcfcdce68b025483bda773d164ae65a622edab"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 1.0, ""], "ok": "94b8df5ca23511d44f02cdc080407364c941c9c2b0f5ee8354d52dea69834825"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 0.125, "7102355709945188865"], "ok": "2fa34c3d390c8c6c1aa535ad7c8133b9f05facd002b8dbe78c988512693abd58"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 0.125, ""], "ok": "bc8613d9d3f4080fcacd00a124efc04a2b3402cd8f7c0f76687e6b15259092d2"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 0.375, "7102355709945188865"], "ok": "0cd4ce76698bdd991eeedeb147d43559db9ab8d39cff1b30995cfa8e7ac8248b"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 0.375, ""], "ok": "05e431c24de5277e8f174242b1ee3d510c615e59c75ec9eac2a8e04547eb542e"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 1.005, "7102355709945188865"], "ok": "b5b1516960d75dea8e3646cfaefcfcdce68b025483bda773d164ae65a622edab"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 1.005, ""], "ok": "94b8df5ca23511d44f02cdc080407364c941c9c2b0f5ee8354d52dea69834825"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 2.675, "7102355709945188865"], "ok": "92b77eeff2cebc768af9ea1ac24d4a661c7e85461e66e8c10c8b1c0533c1aba2"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 2.675, ""], "ok": "9418ff0161b0e16674f8589237dcf75757ae32e6cf0694550f96c8ab5f93328c"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 1.115, "7102355709945188865"], "ok": "40e8fbb5c8d39b9e97bbb9770b56b90a82715698048bab40292dd64d1317b231"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 1.115, ""], "ok": "bf4b247d5f2f36149fea4835d4207efe324d8f5aa1874d356dd905581cff1a75"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 0.5, "7102355709945188865"], "ok": "cdffebd8310b79794025d9ab5e6d7726b2b20e340df9962d7a960665c01e5579"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 0.5, ""], "ok": "58cc79a0cdae6dc6cb39e7fe6bee1b6fd26a836d94e8493ea8353b7a73def3cf"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 1.255, "7102355709945188865"], "ok": "f8d10b348944ef2bb489af3e35e54ba5fd54d35c692ff45f8703bab7132001a4"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 1.255, ""], "ok": "c230526d00e1669f79b61d0489a2da2d96b8b26017f419e6fc7a5119aa89ba5e"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 10.0, "7102355709945188865"], "ok": "8f48163747c0954f2d771c94cded655f6ac0dbbf319bbeffe927ad40b8853e29"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 10.0, ""], "ok": "1bb3dda123fd9a43956675878f8ab2411ac241a348c025a0944476f078039263"}
+{"fn": "generate_hash", "args": ["Xin chào", "", -0.005, "7102355709945188865"], "ok": "03a9cd0329625db948dc776b9ba002e2331844dceea8a003134798b03de0ebda"}
+{"fn": "generate_hash", "args": ["Xin chào", "", -0.005, ""], "ok": "3dd1ad7929e8777bbbd9ec876e3745892f57b4bb55df31bc08a77774bd2a4cdf"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 1e-09, "7102355709945188865"], "ok": "dcba4f7863e4b6edf8757ce5eacbe7072545f92bec3ad4c4f47453d86cc46508"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 1e-09, ""], "ok": "94af8f3dfcd4010f97539fcb4bd74ef20939dddbab40697533b651674c4661e9"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 123.456, "7102355709945188865"], "ok": "f8f9399a9fb501c0a9c494418c2938b98b0fef8b55c595d1fef1b2f77f07a140"}
+{"fn": "generate_hash", "args": ["Xin chào", "", 123.456, ""], "ok": "f47c6ce8a5139c583d432eda60187eaeaf241e9795ca09839418ddeffe768670"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 1.0, "7102355709945188865"], "ok": "23f1c9a74ff3c336600b96e90735938b0e0b2bfd5039c07503961d5b8b88473a"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 1.0, ""], "ok": "015535d24ad0edd8c4535dccffcb7f69da6ee8ef6e3396e58dc48828dfedf985"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 0.125, "7102355709945188865"], "ok": "06da9fff44d6a39905621adef5e9b08e6581a1b41a571905aa8659c8b607e38c"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 0.125, ""], "ok": "570755a71a0d063fde23f7e15404bc3394751f6944a10b0a612550a6a008970c"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 0.375, "7102355709945188865"], "ok": "f7d13aa112bfd0fce24af5739ed9fc070f4f00c09a3fc4b8c6e7d3f2c80f2fe0"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 0.375, ""], "ok": "812bb85eaa9faafb2b2fe457e3388db4b6b3f72ee8f50448d56bc5441246315d"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 1.005, "7102355709945188865"], "ok": "23f1c9a74ff3c336600b96e90735938b0e0b2bfd5039c07503961d5b8b88473a"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 1.005, ""], "ok": "015535d24ad0edd8c4535dccffcb7f69da6ee8ef6e3396e58dc48828dfedf985"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 2.675, "7102355709945188865"], "ok": "43e987c01e459c4be96837d3849836f8b40b407dae519bcbab9456516453eef9"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 2.675, ""], "ok": "af6695a05c3b901d1069556f4d9bde972d710c02a46d3ff978d0d2cae6ccd75c"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 1.115, "7102355709945188865"], "ok": "13d9173a6f1ef3022b73fd0d281c301dfbb28511c6e26cd01c995696e4a24c75"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 1.115, ""], "ok": "11c58e88e9c467f6c2e8a04ad8458160bdaeaca4ca9d1f171358f50df6ec27b9"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 0.5, "7102355709945188865"], "ok": "2ce0ee117d95a17fca16ad3501e8f3fed8cdae7a5f590c7550c4c39c1e28c7c3"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 0.5, ""], "ok": "6e5db59e1270bf1d62d6df153ef9fc68e339ab1641db651a78aa2492f0a3b4b1"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 1.255, "7102355709945188865"], "ok": "a0e4cf91618681edf63d6f3a229fffcdfe812ff0a2d018dcb642f1311a65eab7"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 1.255, ""], "ok": "7f3a4ed45760d7c85e4748c7786047dd0581609a06f97eb2534a400769331444"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 10.0, "7102355709945188865"], "ok": "175b3ac11fb5969b364d55ee9feb25faea22a04975856bd7c0801d376aad3b7a"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 10.0, ""], "ok": "ceab6e12cefd214b8b41ae3d1f7f972a33ca56c7cb30e92ecadb85bc84e9f0ba"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", -0.005, "7102355709945188865"], "ok": "aebdb28434b69f665994c4430dd9a774a0c73f80abb58847c09e8afc5e533460"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", -0.005, ""], "ok": "6c9102cae944ba576e73b2c3622d1eea044927d6bea4e17601e392bcd7e28b74"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 1e-09, "7102355709945188865"], "ok": "96e8ec6a352f6248103e1eca90edfe357dd244341cb88fe008a01f9ea5a58cfa"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 1e-09, ""], "ok": "7d9f05ebf8efc26df5f25bcae1b603bff8b901d97110a0743871d2d3cefc5eef"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 123.456, "7102355709945188865"], "ok": "1b15977fc47b06d87cbf459e05495103fc0c67ca3d66dc8cec37cc89ebd484bd"}
+{"fn": "generate_hash", "args": ["", "BV074_streaming", 123.456, ""], "ok": "2628be33cfd90695ca352f299d5dff40da3a85d8ee2291ae0ac90bb516a40895"}
+{"fn": "generate_hash", "args": ["", "", 1.0, "7102355709945188865"], "ok": "484f02806220292a56df9af4c14b50652ad8291b2d4c6a0c82c6a59f7838b71d"}
+{"fn": "generate_hash", "args": ["", "", 1.0, ""], "ok": "c49fd73fcaa8247fad01db5e2feb3aab443898664a83fec506df5b62a7782f2b"}
+{"fn": "generate_hash", "args": ["", "", 0.125, "7102355709945188865"], "ok": "b953e250afa6444c38f204f6b3f0ab19aa7ca66921bdeefc1d8ffbf064bc08ad"}
+{"fn": "generate_hash", "args": ["", "", 0.125, ""], "ok": "d5907d9b9f02a8f2000c602fa6fb4d36bdd95676c5b9acd9f6561e34c8effd07"}
+{"fn": "generate_hash", "args": ["", "", 0.375, "7102355709945188865"], "ok": "71338ea8f98120a86b6af357ee8cf776b2336a4ebe629f6dc87a0bea926ad818"}
+{"fn": "generate_hash", "args": ["", "", 0.375, ""], "ok": "7b5a7e94d81c642ae4c7299e4086daa57b0c84653cf1a91b6ee008d85e054d0c"}
+{"fn": "generate_hash", "args": ["", "", 1.005, "7102355709945188865"], "ok": "484f02806220292a56df9af4c14b50652ad8291b2d4c6a0c82c6a59f7838b71d"}
+{"fn": "generate_hash", "args": ["", "", 1.005, ""], "ok": "c49fd73fcaa8247fad01db5e2feb3aab443898664a83fec506df5b62a7782f2b"}
+{"fn": "generate_hash", "args": ["", "", 2.675, "7102355709945188865"], "ok": "75036ae9ab01088c480dd5ac6658ea5b1fa193c0e7557358b9991a76598973d5"}
+{"fn": "generate_hash", "args": ["", "", 2.675, ""], "ok": "d71c55297ccca5c1b06b6859bd478b4b3ab05ac5f2ed152135a572c86a323734"}
+{"fn": "generate_hash", "args": ["", "", 1.115, "7102355709945188865"], "ok": "aff91da55b757cf86f6d2e42e5da2d149093cf1a7f7c55fe3a4a4e3b94202694"}
+{"fn": "generate_hash", "args": ["", "", 1.115, ""], "ok": "8bceab9d3e27b83921ce56b4b5fad2bb4841785dc1fdb97c6fe996d3f46cb2e8"}
+{"fn": "generate_hash", "args": ["", "", 0.5, "7102355709945188865"], "ok": "ad5edb68f5cafe3deda3b1887214dafe6fafdfafbd85d4b60a29aa0e5ce07acf"}
+{"fn": "generate_hash", "args": ["", "", 0.5, ""], "ok": "04099251063f0a7b00a8d8ed16234e37c4983c9d5907a78f8f0347f859b86fb5"}
+{"fn": "generate_hash", "args": ["", "", 1.255, "7102355709945188865"], "ok": "4bc842e3422781160ce6a694ab4f666b41b4618a44e8c96c76142b15bade2792"}
+{"fn": "generate_hash", "args": ["", "", 1.255, ""], "ok": "47da55ae488e02b09ba0782ad3bebe1216054cfafe4fd93c59bbcbde3b42bdee"}
+{"fn": "generate_hash", "args": ["", "", 10.0, "7102355709945188865"], "ok": "ab20c0146a5677995542243d3ef57bfe3adfe1cb19b324a72c7ef396beecdd71"}
+{"fn": "generate_hash", "args": ["", "", 10.0, ""], "ok": "601a023cd7dc05c88bfcc08447119d07052d41adc6aaa53810041e7ae87d1d49"}
+{"fn": "generate_hash", "args": ["", "", -0.005, "7102355709945188865"], "ok": "2e713afddb0dd342fc5b6d456cedbefcc3b7c96d76015771585481814a17fff3"}
+{"fn": "generate_hash", "args": ["", "", -0.005, ""], "ok": "6690e4c2d53288409c019149588753e919ee50e6f7cfecb0f1225a674dcaec4d"}
+{"fn": "generate_hash", "args": ["", "", 1e-09, "7102355709945188865"], "ok": "c53314a678941bf7e50002049e249cb4193433e3a3c42bd16cbe648de485acb8"}
+{"fn": "generate_hash", "args": ["", "", 1e-09, ""], "ok": "3abf8f90aac773892334f77ad23aed6ccbd72f60714b3139db3c54a298cd738b"}
+{"fn": "generate_hash", "args": ["", "", 123.456, "7102355709945188865"], "ok": "03033b8c4821b947ec4c084db941cb47f1c475cdbbe8fc1614167296c639fcd1"}
+{"fn": "generate_hash", "args": ["", "", 123.456, ""], "ok": "e057b14c53d2996af6159dfde8fa3c36a4ed2ae238dac078569ae442568e8ad1"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 1.0, "7102355709945188865"], "ok": "1b3513a45d2fedadd760cebdf1349a4996e8b9a1ccb0e56970add8adda27eb8a"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 1.0, ""], "ok": "0890e9dfb5de64ab65dc836a05df67726d2c66a21127dbbab1dc4df675cb1ac5"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 0.125, "7102355709945188865"], "ok": "be2fbdba17dd65ea80b3d1b234999ad7ad5be336dd4fa803ff598d209ad4487f"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 0.125, ""], "ok": "01d82af3ebceed91c53cab2f5fa9635aacd4a513bdfd7186cc3ce159454c8f5c"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 0.375, "7102355709945188865"], "ok": "0a4a1fab0432b98fdd46182c081ca6878811f7dc5ca2a3c48f03a1d6eeb2d585"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 0.375, ""], "ok": "6d5643b9c524563c138181f705e9ce566a1432c200b432e2280c1f72fcbbb507"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 1.005, "7102355709945188865"], "ok": "1b3513a45d2fedadd760cebdf1349a4996e8b9a1ccb0e56970add8adda27eb8a"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 1.005, ""], "ok": "0890e9dfb5de64ab65dc836a05df67726d2c66a21127dbbab1dc4df675cb1ac5"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 2.675, "7102355709945188865"], "ok": "1d198acc9227669005f5971f8d3788cc50fd918421f59df0cccf0d9ecd68f158"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 2.675, ""], "ok": "5b47bbf7b20153ab422562a3fb6187e4ec926440a5e47db6d31eacad6341e028"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 1.115, "7102355709945188865"], "ok": "6c5a4ee676cfaec636c74c05957bfcadc530a207f26556b79fde6c5f2572f90e"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 1.115, ""], "ok": "38f3c42d567d6420ded457cf114406b7852919a693f798ffa623214c12219a23"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 0.5, "7102355709945188865"], "ok": "e541fbc7b5e3ddb18ac50d3596ff9f99498fd13d7d855b8a069dc441f24ccc7e"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 0.5, ""], "ok": "8df2d70fa2d84048d0306da9004ea39dd0a0f2893ed379ecf77dd5d8d1b470e4"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 1.255, "7102355709945188865"], "ok": "05e48e3778a4098f6900aebd123ce4d38f3e1b668b85211422f0ee253dfaecb0"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 1.255, ""], "ok": "42af5e6e8d1835e654d94ce7f715e7ac356d42215c440efa935959e3bb540bea"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 10.0, "7102355709945188865"], "ok": "bb48191acd6d1338f77edc85ee39e8de7f8f58687b9ccc3a2f570fb708733fb3"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 10.0, ""], "ok": "c0bd559f5ef5db1d054f20e766857dde9b7e5cd3e784e7af3a2810fb24e93144"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", -0.005, "7102355709945188865"], "ok": "f5fd47c0bf34b95f44e514e04d194e568a7d1fbc4a438879954bdc5b5696f1b4"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", -0.005, ""], "ok": "327d9be6daa2d2fe9e50808c8e336195780541a72e5ecef55cc0e23af4545e05"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 1e-09, "7102355709945188865"], "ok": "510cb963adb8d6fcb0d22ce593d228ca1f18a8d8cb0c3aa89c136469679d734e"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 1e-09, ""], "ok": "57d648597c3f66ab62602756e087da19de234641cc7dc0102fbab3f0a7f5020f"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 123.456, "7102355709945188865"], "ok": "8dce819d0b7d6a0c8e0a29a04879896675b7c1bce9c86e9d456ecfd5b7174f76"}
+{"fn": "generate_hash", "args": ["a|b", "BV074_streaming", 123.456, ""], "ok": "1335b2b7c8741602852264f9687db8d8e6bbafd9d1ac0392e58b7aefcd2acc95"}
+{"fn": "generate_hash", "args": ["a|b", "", 1.0, "7102355709945188865"], "ok": "902b0934335da0443043f07006b24720963827f5c41522952132826624f6d94d"}
+{"fn": "generate_hash", "args": ["a|b", "", 1.0, ""], "ok": "54c1e5db602aeb5dc84688cf3d2678421a8ae3118b309750f96a19ff83b63b02"}
+{"fn": "generate_hash", "args": ["a|b", "", 0.125, "7102355709945188865"], "ok": "bd28834a08d5116a9f5b69bed8872df55d61940790b543ee3bb682c795d1821d"}
+{"fn": "generate_hash", "args": ["a|b", "", 0.125, ""], "ok": "09722059f572b422cd36b6cbe9ef038bbc0b9ece47d0e4e34dc8c5ae04f00194"}
+{"fn": "generate_hash", "args": ["a|b", "", 0.375, "7102355709945188865"], "ok": "9581048cf0b442e90d8c9f6d6dabf645bf32aea42d21d199aab6bcf3bd931227"}
+{"fn": "generate_hash", "args": ["a|b", "", 0.375, ""], "ok": "d20a4c5f5e271d676c85418a0aa15c022e64b445f5716e96a57207f4a2690dfc"}
+{"fn": "generate_hash", "args": ["a|b", "", 1.005, "7102355709945188865"], "ok": "902b0934335da0443043f07006b24720963827f5c41522952132826624f6d94d"}
+{"fn": "generate_hash", "args": ["a|b", "", 1.005, ""], "ok": "54c1e5db602aeb5dc84688cf3d2678421a8ae3118b309750f96a19ff83b63b02"}
+{"fn": "generate_hash", "args": ["a|b", "", 2.675, "7102355709945188865"], "ok": "8745c5ff6d7e6a194404d8b67851edabcb11f9bc7e663aeb1a485f5cffd7bab0"}
+{"fn": "generate_hash", "args": ["a|b", "", 2.675, ""], "ok": "dd7a5cd9f4cd755b84e6d064a8e9581540731415cc374a79ce8b3aa26668fa65"}
+{"fn": "generate_hash", "args": ["a|b", "", 1.115, "7102355709945188865"], "ok": "487337b646ca0fcc4d0695c11f1bffbc2b0c30fb31c8023b71efe1624897c4fb"}
+{"fn": "generate_hash", "args": ["a|b", "", 1.115, ""], "ok": "2abeadb0a328df7f37e64290845096584ac747aca466349c4b82c934a52cbf87"}
+{"fn": "generate_hash", "args": ["a|b", "", 0.5, "7102355709945188865"], "ok": "7bd554c19ae9503eb1cb00e1de7c190466bfbd24eebb103ec4c951d3b03eb941"}
+{"fn": "generate_hash", "args": ["a|b", "", 0.5, ""], "ok": "e5d18506def7036d207a883200e344e0a688a5bc026cf7d63792b0ac66763523"}
+{"fn": "generate_hash", "args": ["a|b", "", 1.255, "7102355709945188865"], "ok": "d7502505c6f0b7fc1729b5468d197bdcd33e44e4ca38f9681b74ab992f5800c1"}
+{"fn": "generate_hash", "args": ["a|b", "", 1.255, ""], "ok": "8e5bc739826e67f3b9f095fead9ffef07e766fac6277b1183edb0a4e797dde03"}
+{"fn": "generate_hash", "args": ["a|b", "", 10.0, "7102355709945188865"], "ok": "b0f75a307678416ecfd90dbbabc845af3b094539728d4010945c4301477045ef"}
+{"fn": "generate_hash", "args": ["a|b", "", 10.0, ""], "ok": "0890ce89c394869528f275ce5c8077fae16fd2d89348e6f29b1fec2721cb5716"}
+{"fn": "generate_hash", "args": ["a|b", "", -0.005, "7102355709945188865"], "ok": "fd759c067dae10390fb13a5fdaaacfe061d2c4698aa8ac399ff427ef8c70c7a1"}
+{"fn": "generate_hash", "args": ["a|b", "", -0.005, ""], "ok": "eea21174c364fd6ddb875a8be9380966a9ef114e7b220bfb3595169b708c6041"}
+{"fn": "generate_hash", "args": ["a|b", "", 1e-09, "7102355709945188865"], "ok": "64d9afc2716439eca61eba767ff56718492460d69b7a7b6730ed7f4c535f3686"}
+{"fn": "generate_hash", "args": ["a|b", "", 1e-09, ""], "ok": "2055f6365c9b025e67babc3fb52592dddb3b16037771bc932eb0d6a1a3de8e4e"}
+{"fn": "generate_hash", "args": ["a|b", "", 123.456, "7102355709945188865"], "ok": "20bd6214ab467bff5cadb1c7e250662bdb6df4522c92dff57191d3704739f3d9"}
+{"fn": "generate_hash", "args": ["a|b", "", 123.456, ""], "ok": "d422e329fd890c1cff17bdcec3e7569b7f8fa1393dec73ad2f05af0a3c2cebb9"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 1.0, "7102355709945188865"], "ok": "aa441538f17936d07ab9b2aee1d7cba40bd6f73156a52a765165e41fdfa9bc01"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 1.0, ""], "ok": "1d193ba41dfd9c25786f99aacd2e2a79d7968091d18f67718e0024389703c7be"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 0.125, "7102355709945188865"], "ok": "4800fffb34e9fd5d9b33134eaf8ae561f903591cb241845fda7d365300a538cc"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 0.125, ""], "ok": "d91d255c59aa6fb752bd63221e52e28501ddd1e6fda3182930df4e739229272c"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 0.375, "7102355709945188865"], "ok": "3c87ff9711f32aaa2a7f40f095ad7bc3c0511b7948c63a892f7da38fa4479632"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 0.375, ""], "ok": "a7ebc93d1e56ab8a7833e2bfcd699d67b6cdd1c27f61d52fe2b26493527a765c"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 1.005, "7102355709945188865"], "ok": "aa441538f17936d07ab9b2aee1d7cba40bd6f73156a52a765165e41fdfa9bc01"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 1.005, ""], "ok": "1d193ba41dfd9c25786f99aacd2e2a79d7968091d18f67718e0024389703c7be"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 2.675, "7102355709945188865"], "ok": "a18695f79ba1584dd0025c90f1a9dd8111f08337fdc96dee9b94d93623ac2cc9"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 2.675, ""], "ok": "f853b67623783a9c83c126175caef7e7e8263f547f26885e613463b54224f9cc"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 1.115, "7102355709945188865"], "ok": "8ec5c453a536c53b56993f4e5cb5653b96cb6cba8458ee9feb41688127c70a54"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 1.115, ""], "ok": "2e1376fc5336ab02d6ca71d4fad9e082b4643a4a38edb777ba8c5e1122b7fde0"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 0.5, "7102355709945188865"], "ok": "e4b299c5c8330aa9128cfe723defce3ad11f21d71a0f677fd04d8b73ef7e0efb"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 0.5, ""], "ok": "7f1966cae98c4df8da41b7c5bcab47d9b7761a40557576cfac0b6e10aa04d459"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 1.255, "7102355709945188865"], "ok": "d9a704ea8477aaa539fc9aa482e13eac79861a12781ef0782bd473c76141be5b"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 1.255, ""], "ok": "8d08ca7a99f50dae23584f84f4b5d1b29e41e255758e9c45a4927163151aea4a"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 10.0, "7102355709945188865"], "ok": "78e23743dc0d20d2da71f79a3b9ea9bf93b0689d937f97a1b79b6fcbc7be1b44"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 10.0, ""], "ok": "9cd7f0ab302a377d5e19cd72abc700dc7f1e1992da2c74d5ac79a53cd7be9119"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", -0.005, "7102355709945188865"], "ok": "2d7157168c92bb6c2fbd9ec340ed621e62e2edd76f6f8ace1807dbc5148a1c06"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", -0.005, ""], "ok": "f8c9b51e060ade63ba27d3a570fdede914bd3b7c57d6baa173e7e0a54c3f2026"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 1e-09, "7102355709945188865"], "ok": "ab483d62e4330d297670b68cac2c95a25183b72bf85a0a49ce671076b2dd73b6"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 1e-09, ""], "ok": "9ce46ccdc317f1163ac6d9c98f8cd1fd1fd0db45bcc153ebfca1d9f81532942c"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 123.456, "7102355709945188865"], "ok": "54320a58234f3bb9abe810dca9d31ed7dc1d45d15e50c7458302f6790192e8b4"}
+{"fn": "generate_hash", "args": ["😀", "BV074_streaming", 123.456, ""], "ok": "78cd1df73dd336dccb1aa207de8f8d01950e75d5c5c4aa27dc705de60430b48f"}
+{"fn": "generate_hash", "args": ["😀", "", 1.0, "7102355709945188865"], "ok": "52befc9c85b66f138aa319e3dc26247baa705ed3c7e240ef5b93e417281ce496"}
+{"fn": "generate_hash", "args": ["😀", "", 1.0, ""], "ok": "9c111c8192597e1edfa27c496005f02cc2f76bc4940910d7f4581bdb0e0e11dd"}
+{"fn": "generate_hash", "args": ["😀", "", 0.125, "7102355709945188865"], "ok": "a7d0fd63b9e29128bce5b5eaf71c4639d847a9f0f848f844836db56a43f6d02f"}
+{"fn": "generate_hash", "args": ["😀", "", 0.125, ""], "ok": "4d78ab88da31e1ec6893416fa54eabda8bc577b63a0b38aa139a342379dccb9a"}
+{"fn": "generate_hash", "args": ["😀", "", 0.375, "7102355709945188865"], "ok": "5a22baf125820268f6d637adc4e198e00458346ed742d52514d4c88293e3a051"}
+{"fn": "generate_hash", "args": ["😀", "", 0.375, ""], "ok": "2a0bb17409171601e15b3559775d83a11a63e7d04b0a6d6275a6fcf9d206f99a"}
+{"fn": "generate_hash", "args": ["😀", "", 1.005, "7102355709945188865"], "ok": "52befc9c85b66f138aa319e3dc26247baa705ed3c7e240ef5b93e417281ce496"}
+{"fn": "generate_hash", "args": ["😀", "", 1.005, ""], "ok": "9c111c8192597e1edfa27c496005f02cc2f76bc4940910d7f4581bdb0e0e11dd"}
+{"fn": "generate_hash", "args": ["😀", "", 2.675, "7102355709945188865"], "ok": "4b10df10ed95baaf2a14613625512235e8d95a83fa929363c98a312ee43e34a4"}
+{"fn": "generate_hash", "args": ["😀", "", 2.675, ""], "ok": "f7df7177d9f8e50eca734e413289c74a97186b913c15ec10921cbf222c7c95b6"}
+{"fn": "generate_hash", "args": ["😀", "", 1.115, "7102355709945188865"], "ok": "c2a2e7ce341c8fa4d053d984699e883899e6776148b14c608a0fbeec0fe0d9b8"}
+{"fn": "generate_hash", "args": ["😀", "", 1.115, ""], "ok": "92e9f06489a5d2e2e0f0a60065b4fa864e8786b46df45f3610e5c12c3c14d4d6"}
+{"fn": "generate_hash", "args": ["😀", "", 0.5, "7102355709945188865"], "ok": "75c3b1500f1e078751a1ceb5d89ae3e491ffaa7e54ec92409bcada3edb78cbaf"}
+{"fn": "generate_hash", "args": ["😀", "", 0.5, ""], "ok": "d17624a0237f86e0e457a8a417cb7b54f84f586a92656541aa58065479d0cf94"}
+{"fn": "generate_hash", "args": ["😀", "", 1.255, "7102355709945188865"], "ok": "c8ac68491e5b425e51dfa60a1855c4eebcb21eeb73e4f2cc3231f766c3239471"}
+{"fn": "generate_hash", "args": ["😀", "", 1.255, ""], "ok": "69a35a090850c17876ee8a2883e0d39cd41297e181b5aa556a77779a0216344f"}
+{"fn": "generate_hash", "args": ["😀", "", 10.0, "7102355709945188865"], "ok": "c02a7b3c3923b9ecf1ae5d91fedb0a333c9bb0d23ea54f71113f4b63eb00e554"}
+{"fn": "generate_hash", "args": ["😀", "", 10.0, ""], "ok": "2963683d433c211939f50f72ccfffe19d9e4665707ef3012bb86e3f4bfa9702b"}
+{"fn": "generate_hash", "args": ["😀", "", -0.005, "7102355709945188865"], "ok": "2fd904cb4116eca7c7096291d6322ffc8a2fd6862883c7c33efb9e407aa4b315"}
+{"fn": "generate_hash", "args": ["😀", "", -0.005, ""], "ok": "65f00bc03728f4dd83c17b8b85b946ec3b6458b0593bc2c48922f7624f63d400"}
+{"fn": "generate_hash", "args": ["😀", "", 1e-09, "7102355709945188865"], "ok": "732a1d17b98c3e02e00d151785bf223c1ae73f6cf2877c85ebff3c1cf7ddf9f9"}
+{"fn": "generate_hash", "args": ["😀", "", 1e-09, ""], "ok": "0a5f9349be9b5d56e74cc25ffe4eaac12cbfa02f8c3b75ec04718418b7df48b6"}
+{"fn": "generate_hash", "args": ["😀", "", 123.456, "7102355709945188865"], "ok": "f06cd6b561661771c59531ce6b630a7b59809dabe6fd87e205845cb30563354a"}
+{"fn": "generate_hash", "args": ["😀", "", 123.456, ""], "ok": "d5e8dd6cb6d9815bfa0f2317f38adb0f27c0566890c86ecb73e86899adca4b70"}
+{"fn": "cache", "args": [0], "ok": [{"ok": [null, null]}, {"ok": "<ROOT>/cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.mp3"}, {"ok": ["<ROOT>/cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.mp3", 0.0]}, {"err": "ValueError"}, {"ok": ["<ROOT>/cache/598d8fff5feceff8e325dda5e5bd4b104557bb14a6757d6850e5b1017e45e423.mp3", null]}], "tree": {"cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.meta.json": "{\"duration\": 0.0}", "cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.mp3": "ID3", "cache/598d8fff5feceff8e325dda5e5bd4b104557bb14a6757d6850e5b1017e45e423.meta.json": "{bad", "cache/598d8fff5feceff8e325dda5e5bd4b104557bb14a6757d6850e5b1017e45e423.mp3": "X", "empty.mp3": "", "src.mp3": "ID3"}}
+{"fn": "cache", "args": [1], "ok": [{"ok": [null, null]}, {"ok": "<ROOT>/cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.mp3"}, {"ok": ["<ROOT>/cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.mp3", 1.5]}, {"err": "ValueError"}, {"ok": [null, null]}], "tree": {"cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.meta.json": "{\"duration\": 1.5}", "cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.mp3": "ID3ID3", "cache/598d8fff5feceff8e325dda5e5bd4b104557bb14a6757d6850e5b1017e45e423.meta.json": "{\"duration\": \"2\"}", "cache/598d8fff5feceff8e325dda5e5bd4b104557bb14a6757d6850e5b1017e45e423.mp3": "", "empty.mp3": "", "src.mp3": "ID3ID3"}}
+{"fn": "cache", "args": [2], "ok": [{"ok": [null, null]}, {"ok": "<ROOT>/cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.mp3"}, {"ok": ["<ROOT>/cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.mp3", 2.0]}, {"err": "ValueError"}, {"ok": ["<ROOT>/cache/598d8fff5feceff8e325dda5e5bd4b104557bb14a6757d6850e5b1017e45e423.mp3", null]}], "tree": {"cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.meta.json": "{\"duration\": 2.0}", "cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.mp3": "ID3ID3ID3", "cache/598d8fff5feceff8e325dda5e5bd4b104557bb14a6757d6850e5b1017e45e423.meta.json": "[]", "cache/598d8fff5feceff8e325dda5e5bd4b104557bb14a6757d6850e5b1017e45e423.mp3": "X", "empty.mp3": "", "src.mp3": "ID3ID3ID3"}}
+{"fn": "cache", "args": [3], "ok": [{"ok": [null, null]}, {"ok": "<ROOT>/cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.mp3"}, {"ok": ["<ROOT>/cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.mp3", 1e-07]}, {"err": "ValueError"}, {"ok": [null, null]}], "tree": {"cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.meta.json": "{\"duration\": 1e-07}", "cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.mp3": "ID3ID3ID3ID3", "cache/598d8fff5feceff8e325dda5e5bd4b104557bb14a6757d6850e5b1017e45e423.meta.json": "{\"x\": 1}", "cache/598d8fff5feceff8e325dda5e5bd4b104557bb14a6757d6850e5b1017e45e423.mp3": "", "empty.mp3": "", "src.mp3": "ID3ID3ID3ID3"}}
+{"fn": "cache", "args": [4], "ok": [{"ok": [null, null]}, {"ok": "<ROOT>/cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.mp3"}, {"ok": ["<ROOT>/cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.mp3", 3.25]}, {"err": "ValueError"}, {"ok": ["<ROOT>/cache/598d8fff5feceff8e325dda5e5bd4b104557bb14a6757d6850e5b1017e45e423.mp3", null]}], "tree": {"cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.meta.json": "{\"duration\": 3.25}", "cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.mp3": "ID3ID3ID3ID3ID3", "cache/598d8fff5feceff8e325dda5e5bd4b104557bb14a6757d6850e5b1017e45e423.meta.json": "", "cache/598d8fff5feceff8e325dda5e5bd4b104557bb14a6757d6850e5b1017e45e423.mp3": "X", "empty.mp3": "", "src.mp3": "ID3ID3ID3ID3ID3"}}
+{"fn": "cache", "args": [5], "ok": [{"ok": [null, null]}, {"ok": "<ROOT>/cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.mp3"}, {"ok": ["<ROOT>/cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.mp3", 100.0]}, {"err": "ValueError"}, {"ok": [null, null]}], "tree": {"cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.meta.json": "{\"duration\": 100.0}", "cache/0b901195a42d63b5dbaf19f3f30aebc372222430364b0d3eb430ed3548d4556f.mp3": "ID3ID3ID3ID3ID3ID3", "cache/598d8fff5feceff8e325dda5e5bd4b104557bb14a6757d6850e5b1017e45e423.meta.json": "{\"duration\": 4}", "cache/598d8fff5feceff8e325dda5e5bd4b104557bb14a6757d6850e5b1017e45e423.mp3": "", "empty.mp3": "", "src.mp3": "ID3ID3ID3ID3ID3ID3"}}

@@ -69,6 +69,22 @@ pub fn capcut_text_reading_path(placeholder: &str, dest_name: &str) -> String {
     format!("{placeholder}/textReading/{}", path_name(dest_name))
 }
 
+/// `Path.resolve()`: absolute, symlinks resolved, without Windows' `\\?\` prefix.
+#[must_use]
+pub fn resolve(p: &Path) -> PathBuf {
+    let r = std::fs::canonicalize(p)
+        .or_else(|_| std::path::absolute(p))
+        .unwrap_or_else(|_| p.to_path_buf());
+    let s = r.to_string_lossy();
+    if let Some(rest) = s.strip_prefix(r"\\?\UNC\") {
+        return PathBuf::from(format!(r"\\{rest}"));
+    }
+    if let Some(rest) = s.strip_prefix(r"\\?\") {
+        return PathBuf::from(rest);
+    }
+    r
+}
+
 fn resolve_key(p: &Path) -> PathBuf {
     std::fs::canonicalize(p)
         .or_else(|_| std::path::absolute(p))

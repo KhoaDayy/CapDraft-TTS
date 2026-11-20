@@ -116,3 +116,11 @@ Status: accepted (2026-11-20)
 Decision: Each wave runs `rust/tools/check_real_draft.py` on a large real project and reports
 Python and Rust times per step. A unit is done only when its outputs are identical and it is
 clearly faster than the original; a slowdown blocks the wave.
+
+## ADR-016: What wave 3 leaves out
+Status: accepted (2026-11-20)
+Decision: The voice catalog download (`VoiceCatalog.load`, HTTP GET of `Voice.json`) moves to
+wave 4 with the TTS client, so one HTTP stack is chosen for both; wave 3 ports parsing, filtering
+and lookup. The log keeps the original's line layout (`[time] [LEVEL] [file:line] - message`)
+but file and line name Rust sources, so logs are not replayed. `AppConfig` is a value the app
+owns, not a process-wide singleton.

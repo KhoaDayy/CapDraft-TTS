@@ -6,7 +6,11 @@
 //! cargo run --release --example real_draft -- <draft_content.json> <out_dir>
 //! ```
 
+use capdraft_core::alignment::NativeAudioAlignmentSettings;
+use capdraft_core::draft_patcher::{DraftPatcher, PatchSettings};
 use capdraft_core::draft_reader::{DraftReader, extract_captions};
+use capdraft_core::models::{CaptionTtsResult, ToneModifyMode};
+use std::collections::HashMap;
 
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
@@ -109,6 +113,73 @@ fn main() -> Result<(), String> {
             &format!("part{part}.json"),
             &dumps_compact(&json!([d, int(n)])),
         )?;
+    }
+
+    // Attach TTS to every caption, then regenerate it (replace_existing on a draft with TTS).
+    let mut patched = draft.clone();
+    for round in [1i64, 2] {
+        let mut r2 =
+            DraftReader::from_draft(patched.clone(), PathBuf::from("/p/Proj/draft_content.json"));
+        let mut caps = r2.extract_captions()?;
+        let templates = r2.get_tts_templates()?;
+        let mut results: Vec<CaptionTtsResult> = caps
+            .iter()
+            .filter(|c| !c.is_empty())
+            .map(|c| CaptionTtsResult {
+                caption_index: c.index,
+                text_material_id: c.text_material_id.clone(),
+                text_segment_id: c.text_segment_id.clone(),
+                start_us: c.start_us,
+                audio_path: "a.mp3".into(),
+                source_duration_us: 300_000 + 55_000 * c.text.chars().count() as i64 + round,
+                status: "generated".into(),
+                ..Default::default()
+            })
+            .collect();
+        let rel: HashMap<i64, String> = caps
+            .iter()
+            .map(|c| {
+                (
+                    c.index,
+                    format!("C:/Proj/textReading/tts_{:06}.mp3", c.index),
+                )
+            })
+            .collect();
+        let settings = PatchSettings {
+            voice_type: "BV421_vivn_streaming",
+            resource_id: "7252594014782755330",
+            voice_display_name: "Nhỏ Ngọt Ngào",
+            capcut_clip_speed: 1.3,
+            tone_modify_mode: ToneModifyMode::PreservePitch,
+            existing_tts_mode: "replace_existing",
+        };
+        let mut work = patched.clone();
+        ids::deterministic(CLOCK);
+        let t = Instant::now();
+        let patcher = DraftPatcher::new(
+            &templates,
+            info.fps,
+            NativeAudioAlignmentSettings::default(),
+        );
+        let stats = patcher.patch(&mut work, &mut caps, &mut results, &settings, &rel)?;
+        time(&format!("patch_round{round}"), t);
+        ids::reset();
+        let t = Instant::now();
+        let perrs = validator::validate(&work, None, false)?;
+        time(&format!("validate_patched{round}"), t);
+        let stats_v = json!({
+            "materials_created": stats.materials_created, "segments_created": stats.segments_created,
+            "speeds_created": stats.speeds_created, "fades_created": stats.fades_created,
+            "alignment_applied": stats.alignment_applied, "alignment_trim_reduced": stats.alignment_trim_reduced,
+            "replaced": stats.replaced, "skipped": stats.skipped, "tracks_used": stats.tracks_used,
+            "tracks_created": stats.tracks_created, "orphans_removed": stats.orphans_removed,
+            "created_ids": stats.created_ids, "removed_ids": stats.removed_ids,
+        });
+        write(
+            &format!("patched{round}.json"),
+            &dumps_compact(&json!([work.clone(), stats_v, perrs])),
+        )?;
+        patched = work;
     }
 
     // Whole split on a scratch copy of the project.

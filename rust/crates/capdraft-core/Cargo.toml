@@ -17,6 +17,8 @@ ryu.workspace = true
 itoa.workspace = true
 memchr.workspace = true
 rayon.workspace = true
+sha2.workspace = true
+chrono.workspace = true
 regex.workspace = true
 uuid.workspace = true
 

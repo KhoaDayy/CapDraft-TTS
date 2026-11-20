@@ -2,13 +2,14 @@
 
 Goal: a standalone Rust desktop app (Windows x64) that does what the Python app does;
 the Python code stays as reference until cutover. Decisions: [DECISIONS.md](DECISIONS.md)
-(ADR-001 … ADR-015). Terms: [GLOSSARY.md](GLOSSARY.md).
+(ADR-001 … ADR-016). Terms: [GLOSSARY.md](GLOSSARY.md).
 
 How a unit is verified: [ADR-006](DECISIONS.md#adr-006-verify-against-recordings-of-the-python-original).
 
 ```sh
 python rust/tools/record_wave1.py          # re-record (from the repo root)
 python rust/tools/record_wave2.py
+python rust/tools/record_wave3.py
 cargo test --manifest-path rust/Cargo.toml # replays rust/golden/*.jsonl
 ```
 
@@ -29,10 +30,13 @@ cargo test --manifest-path rust/Cargo.toml # replays rust/golden/*.jsonl
 | 2 | `draft_reader.py` (captions, info, templates, inspect, load) | `draft_reader.rs` | done | 1525/1525 + 12 load fixtures |
 | 2 | Python value semantics (ADR-011), ids/clock (ADR-012) | `pyval.rs`, `ids.rs` | done | via the units above |
 | 2 | JSON value type, parser, writer (ADR-013, ADR-014) | `json.rs` | done | all golden files are read by it; parallel = sequential tests |
-| 3 | `draft_patcher.py` | | open | |
-| 3 | `project_exporter.py` (backup, atomic write, rollback) | | open | |
-| 3 | `core/cache.py`, `core/config.py`, `core/logger.py` | | open | |
-| 3 | `voice_catalog.py`, `voice_catalog_updater.py` | | open | |
+| 3 | `draft_patcher.py` (materials, segments, speeds, fades, replace/skip existing, track assignment) | `draft_patcher.rs` | done | 164/164 |
+| 3 | `project_exporter.py` (audio copy, backup + prune, atomic multi-target write, rollback, manifest, log) | `project_exporter.rs` | done | 24 projects, steps + whole tree |
+| 3 | `core/config.py` | `config.rs` | done | 13 configs, values + saved file |
+| 3 | `core/cache.py` | `cache.rs` | done | 192 hashes (`.2f` rounding traps) + 6 cache folders |
+| 3 | `voice_catalog.py` (parse, filter, languages, find) | `voice_catalog.rs` | done | 7 catalogs; download: wave 4 (ADR-016) |
+| 3 | `voice_catalog_updater.py` | folded into `voice_catalog.rs` | done | shim only |
+| 3 | `core/logger.py` | `logger.rs` | done | same line layout, not replayed (ADR-016) |
 | 4 | `external/capcut-tts-api/capcut_common_task_client.py` (RSA, AWS4 signing, upload) | | open | record signing/payloads; mock HTTP |
 | 4 | `core/capcut_tts.py` (parallel batches, cancel) | | open | |
 | 5 | `tts_project_service.py`, `video_merge.py`, `capcut_process.py` | | open | |
@@ -55,7 +59,7 @@ split halves, and the whole split project tree), then prints timings. The draft 
 repository.
 
 Last run (2026-11-20) on a real CapCut 191 project, 19.6 MB, 3,585 captions, 2 h 28 min, no
-TTS yet: all 8 outputs identical, re-serialized draft identical to the original file. Timings on
+TTS yet: all 10 outputs identical (including both 32 MB patched drafts), re-serialized draft identical to the original file. Timings on
 the 4-core build container (one run each; more cores make the parallel steps faster):
 
 | Step | Python | Rust | Speed-up |
@@ -67,6 +71,9 @@ the 4-core build container (one run each; more cores make the parallel steps fas
 | validate | 0.104 s | 0.005 s | 19x |
 | slice part 1 / part 2 | 0.369 / 0.411 s | 0.002 / 0.005 s | 205x / 88x |
 | split_project (copy + slice + write both parts) | 1.608 s | 0.071 s | 22.5x |
+| patch: TTS for all 3,585 captions | 0.262 s | 0.044 s | 6.0x |
+| patch again, replacing that TTS | 0.311 s | 0.052 s | 6.0x |
+| validate the patched draft (32 MB) | 0.185 / 0.338 s | 0.024 s | 7.6x / 14x |
 
 `cargo run --release --example bench_json -- <draft>` times parse, clone and dump alone
 (best of 7: parse 0.037 s, dump 0.010 s, clone O(1)).

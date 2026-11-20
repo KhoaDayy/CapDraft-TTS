@@ -38,6 +38,17 @@ pub fn now_unix() -> f64 {
     })
 }
 
+/// `datetime.now()` (local time), or the fixed clock read as a naive time.
+#[must_use]
+pub fn local_now() -> chrono::NaiveDateTime {
+    match CLOCK.with(Cell::get) {
+        Some(t) => chrono::DateTime::from_timestamp(t.trunc() as i64, ((t.fract()) * 1e9) as u32)
+            .map(|d| d.naive_utc())
+            .unwrap_or_default(),
+        None => chrono::Local::now().naive_local(),
+    }
+}
+
 /// Ids become `00000000-0000-0000-0000-000000000001`, `…02`, … and the clock
 /// reads `clock` on this thread until [`reset`].
 pub fn deterministic(clock: f64) {

@@ -488,31 +488,19 @@ fn walk_edges(d: &Value, edges: &mut Vec<i64>) -> PyResult<()> {
 
 // ---------------------------------------------------------------- files
 
-fn io_err(e: &std::io::Error, path: &Path) -> String {
+pub(crate) fn io_err(e: &std::io::Error, path: &Path) -> String {
     let kind = match e.kind() {
         std::io::ErrorKind::NotFound => "FileNotFoundError",
         std::io::ErrorKind::AlreadyExists => "FileExistsError",
         std::io::ErrorKind::PermissionDenied => "PermissionError",
+        std::io::ErrorKind::IsADirectory => "IsADirectoryError",
+        std::io::ErrorKind::NotADirectory => "NotADirectoryError",
         _ => "OSError",
     };
     format!("{kind}: {e}: '{}'", path.display())
 }
 
-/// `Path.resolve()`: absolute, symlinks resolved, without Windows' `\\?\` prefix.
-#[must_use]
-pub fn resolve(p: &Path) -> PathBuf {
-    let r = std::fs::canonicalize(p)
-        .or_else(|_| std::path::absolute(p))
-        .unwrap_or_else(|_| p.to_path_buf());
-    let s = r.to_string_lossy();
-    if let Some(rest) = s.strip_prefix(r"\\?\UNC\") {
-        return PathBuf::from(format!(r"\\{rest}"));
-    }
-    if let Some(rest) = s.strip_prefix(r"\\?\") {
-        return PathBuf::from(rest);
-    }
-    r
-}
+pub use crate::paths::resolve;
 
 fn norm_fold(path: &str) -> String {
     path.replace('\\', "/").trim_end_matches('/').to_owned()
@@ -571,7 +559,14 @@ fn copy_tree(src: &Path, dest: &Path) -> std::io::Result<()> {
 }
 
 /// `shutil.copy2`: contents plus modification time.
-fn copy_file(from: &Path, to: &Path) -> std::io::Result<()> {
+pub(crate) fn copy_file(from: &Path, to: &Path) -> std::io::Result<()> {
+    if from.is_dir() {
+        // `shutil.copy2` on a folder: IsADirectoryError, not Rust's InvalidInput.
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::IsADirectory,
+            "Is a directory",
+        ));
+    }
     std::fs::copy(from, to)?;
     if let Ok(modified) = std::fs::metadata(from).and_then(|m| m.modified())
         && let Ok(f) = std::fs::File::options().write(true).open(to)

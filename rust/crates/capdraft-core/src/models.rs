@@ -204,3 +204,27 @@ mod tests {
         );
     }
 }
+
+/// The outcome of one caption's TTS, as the pipeline and the patcher see it.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct CaptionTtsResult {
+    pub caption_index: i64,
+    pub text_material_id: String,
+    pub text_segment_id: String,
+    pub start_us: i64,
+    pub audio_path: String,
+    pub source_duration_us: i64,
+    pub target_duration_us: i64,
+    /// `generated`, `cached`, `failed` or `skipped`.
+    pub status: String,
+    pub error: String,
+    pub from_cache: bool,
+}
+
+impl CaptionTtsResult {
+    /// `generated` or `cached`: audio exists and can be attached.
+    #[must_use]
+    pub fn is_success(&self) -> bool {
+        self.status == "generated" || self.status == "cached"
+    }
+}

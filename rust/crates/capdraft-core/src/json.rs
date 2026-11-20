@@ -324,6 +324,17 @@ impl Index<&str> for Value {
     }
 }
 
+impl Index<usize> for Value {
+    type Output = Value;
+    /// `Null` when out of range or not an array.
+    fn index(&self, i: usize) -> &Value {
+        match self {
+            Self::Array(a) => a.get(i).unwrap_or(&NULL),
+            _ => &NULL,
+        }
+    }
+}
+
 impl From<i64> for Value {
     fn from(v: i64) -> Self {
         Self::Number(Number::Int(v))

@@ -23,7 +23,10 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from core.capcut_project import project_split as ps  # noqa: E402
+from core.capcut_project.draft_patcher import DraftPatcher  # noqa: E402
 from core.capcut_project.draft_reader import DraftReader  # noqa: E402
+from core.capcut_project.models import CaptionTtsResult, ToneModifyMode  # noqa: E402
+from core.capcut_project.native_audio_alignment import NativeAudioAlignmentSettings  # noqa: E402
 from core.capcut_project.srt_exporter import render_captions_srt  # noqa: E402
 from core.capcut_project.validator import DraftValidator  # noqa: E402
 
@@ -112,6 +115,36 @@ def python_side(draft_path: Path, out: Path) -> dict:
         deterministic(False)
         (out / f"part{part}.json").write_text(compact([d, n]), encoding="utf-8", newline="")
 
+    # Attach TTS to every caption, then regenerate it (replace_existing on a draft with TTS).
+    patched = draft
+    for round_no in (1, 2):
+        r2 = DraftReader()
+        r2.draft = patched
+        r2.draft_path = Path("/p/Proj/draft_content.json")
+        r2.project_directory = Path("/p/Proj")
+        caps = r2.extract_captions()
+        templates = r2.get_tts_templates()
+        results = [CaptionTtsResult(caption_index=c.index, text_material_id=c.text_material_id,
+                                    text_segment_id=c.text_segment_id, start_us=c.start_us, audio_path="a.mp3",
+                                    source_duration_us=300_000 + 55_000 * len(c.text) + round_no, target_duration_us=0,
+                                    status="generated") for c in caps if c.text.strip()]
+        rel = {c.index: f"C:/Proj/textReading/tts_{c.index:06d}.mp3" for c in caps}
+        work_copy = json.loads(json.dumps(patched))
+
+        def do_patch(work_copy=work_copy, caps=caps, templates=templates, results=results, rel=rel):
+            p = DraftPatcher(templates, fps=info.fps, alignment=NativeAudioAlignmentSettings())
+            return p.patch(work_copy, captions=caps, results=results, voice_type="BV421_vivn_streaming",
+                           resource_id="7252594014782755330", voice_display_name="Nhỏ Ngọt Ngào",
+                           capcut_clip_speed=1.3, tone_modify_mode=ToneModifyMode.PRESERVE_PITCH,
+                           existing_tts_mode="replace_existing", audio_rel_paths=rel,
+                           project_directory=Path("/p/Proj"))
+        deterministic(True)
+        patched, stats = timed(f"patch_round{round_no}", do_patch)
+        deterministic(False)
+        perrs = timed(f"validate_patched{round_no}", lambda: DraftValidator().validate(
+            patched, project_directory=None, require_audio_files=False))
+        (out / f"patched{round_no}.json").write_text(compact([patched, stats.__dict__, perrs]), encoding="utf-8", newline="")
+
     with tempfile.TemporaryDirectory() as tmp:
         parent = Path(tmp).resolve()
         proj = parent / "Proj"
@@ -152,7 +185,8 @@ def main() -> int:
     same_as_file = (rs_out / "roundtrip.json").read_bytes() == original
     print(f"{'roundtrip == original file':28} {'OK' if same_as_file else 'DIFF'}")
     ok &= same_as_file
-    for name in ["roundtrip.json", "captions.json", "captions.srt", "summary.json", "part1.json", "part2.json", "tree.json"]:
+    for name in ["roundtrip.json", "captions.json", "captions.srt", "summary.json", "part1.json", "part2.json",
+                 "patched1.json", "patched2.json", "tree.json"]:
         a, b = (py_out / name).read_bytes(), (rs_out / name).read_bytes()
         same = a == b
         ok &= same

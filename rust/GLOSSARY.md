@@ -17,3 +17,8 @@
 | native alignment | Head trim via `source_timerange.start` + `audio_fade`, no re-encode | `alignment::apply_native_audio_alignment` |
 | TTS templates | Material/segment/track/extras JSON copied from an existing TTS clip, or built in | `draft_reader::find_tts_templates`, `DraftReader::builtin_tts_templates` |
 | text mode write | Python `open(..., "w")`: `\n` → `\r\n` on Windows | `pyjson::text_mode` |
+| safe TTS voice | The one voice verified to export from CapCut (`BV074_streaming`); every TTS material is pointed at it | `draft_patcher::SAFE_TTS_*` |
+| lane | One audio track during greedy interval partitioning of the new TTS segments | `DraftPatcher::assign_tracks` |
+| write targets | Root `draft_content.json` plus each `Timelines/<id>` copy, written all-or-nothing | `ProjectExporter::atomic_write_draft` |
+| precommit snapshot | `<target>.precommit`, the pre-image restored if a later target fails | `atomic_write_draft` |
+| TTS cache key | sha256 of `text|voice|rate:.2f|resource_id` | `TtsCache::generate_hash` |
