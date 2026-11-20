@@ -9,3 +9,6 @@ cargo test     # unit tests + replay of every case recorded from the Python orig
 ```sh
 cargo run --release -p capdraft-app   # the desktop app (crates/capdraft-app, Slint)
 ```
+
+CI (`.github/workflows/ci.yml`, on push to `main` and on pull requests): fmt, clippy and every
+test on Linux, clippy and a release build of the app on Windows, and the Python test suite.

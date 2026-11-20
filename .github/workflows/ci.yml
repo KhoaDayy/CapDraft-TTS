@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Rust port: format, lints, unit tests and the replay of every golden recording.
+  # Linux on purpose: the goldens were recorded there (on Windows the port writes CRLF like
+  # Python's text mode, so the byte-for-byte comparisons do not apply).
+  rust-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: System packages (Slint build, ffmpeg for the merge replays)
+        working-directory: .
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libfontconfig1-dev ffmpeg
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace --release --locked
+
+  # The app is Windows-only: compile it there (Windows-only code paths, linking, resources).
+  rust-windows-build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Clippy (Windows code paths)
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Build app
+        run: cargo build --release --locked -p capdraft-app
+
+  # Python app (the current release): unittest suite, as in CONTRIBUTING.md.
+  python-test:
+    runs-on: windows-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Sync deps
+        run: uv sync --frozen
+
+      - name: Test
+        run: uv run --frozen python -m unittest discover -s tests -v

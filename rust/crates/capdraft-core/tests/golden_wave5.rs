@@ -324,6 +324,7 @@ fn pipeline_matches_python() {
     r.finish();
 }
 
+#[cfg(unix)]
 fn make_video(ff: &str, path: &Path, freq: u32) {
     let st = std::process::Command::new(ff)
         .args([
