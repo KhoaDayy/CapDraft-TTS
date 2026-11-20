@@ -398,6 +398,32 @@ pub fn tts_new_body(
     rate: &str,
     device: &Object,
 ) -> PyResult<(Value, Value)> {
+    tts_new_body_for(
+        DeviceProfile::Legacy,
+        texts,
+        voice,
+        resource_id,
+        rate,
+        device,
+    )
+}
+
+/// [`tts_new_body`]; the upstream profile also XML-escapes the voice and resource id.
+///
+/// # Errors
+/// As [`tts_new_body`].
+pub fn tts_new_body_for(
+    profile: DeviceProfile,
+    texts: &[String],
+    voice: &str,
+    resource_id: &str,
+    rate: &str,
+    device: &Object,
+) -> PyResult<(Value, Value)> {
+    let (voice, resource_id) = match profile {
+        DeviceProfile::Legacy => (voice.to_owned(), resource_id.to_owned()),
+        DeviceProfile::Upstream => (escape_xml(voice), escape_xml(resource_id)),
+    };
     let babi = jv!({
         "feature_entrance": "editor",
         "feature_entrance_detail": "editor-feature-text_to_speech",
@@ -496,6 +522,18 @@ impl BuiltRequest {
 /// # Errors
 /// Missing device fields and RSA errors.
 pub fn build_request(device: &Object, req: &Request<'_>) -> PyResult<BuiltRequest> {
+    build_request_for(DeviceProfile::Legacy, device, req)
+}
+
+/// [`build_request`] with `profile`'s SSML rules.
+///
+/// # Errors
+/// As [`build_request`].
+pub fn build_request_for(
+    profile: DeviceProfile,
+    device: &Object,
+    req: &Request<'_>,
+) -> PyResult<BuiltRequest> {
     let (body, path, query) = match req {
         Request::TtsNew {
             texts,
@@ -503,7 +541,7 @@ pub fn build_request(device: &Object, req: &Request<'_>) -> PyResult<BuiltReques
             resource_id,
             rate,
         } => {
-            let (babi, body) = tts_new_body(texts, voice, resource_id, rate, device)?;
+            let (babi, body) = tts_new_body_for(profile, texts, voice, resource_id, rate, device)?;
             (
                 body,
                 "/lv/v1/common_task/new",

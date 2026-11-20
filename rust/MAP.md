@@ -2,7 +2,7 @@
 
 Goal: a standalone Rust desktop app (Windows x64) that does what the Python app does;
 the Python code stays as reference until cutover. Decisions: [DECISIONS.md](DECISIONS.md)
-(ADR-001 … ADR-018). Terms: [GLOSSARY.md](GLOSSARY.md).
+(ADR-001 … ADR-019). Terms: [GLOSSARY.md](GLOSSARY.md).
 
 How a unit is verified: [ADR-006](DECISIONS.md#adr-006-verify-against-recordings-of-the-python-original).
 
@@ -40,7 +40,7 @@ cargo test --manifest-path rust/Cargo.toml # replays rust/golden/*.jsonl
 | 3 | `core/logger.py` | `logger.rs` | done | same line layout, not replayed (ADR-016) |
 | 4 | `external/capcut-tts-api/capcut_common_task_client.py`: `tts-new`, `tts-query` (query, headers, SSML, MD5 sign, RSA PKCS#1 v1.5) | `capcut_client.rs` | done | 122/122 requests byte for byte |
 | 4 | `core/capcut_tts.py` (cache hits, chunks, parallel chunks, polling with backoff, parallel downloads, cancel) | `tts.rs` | done | 22 runs against a fake CapCut: results, callbacks, cancel checks, requests, waits, files |
-| 4 | Device profiles from upstream `K07VN/capcut-tts-api` (ADR-018) | `capcut_client.rs`, `tts.rs` | done | unit test |
+| 4 | Device profiles and protocol handling from upstream `K07VN/capcut-tts-api` (ADR-018, ADR-019) | `capcut_client.rs`, `tts.rs` | done | 2 tests |
 | 4 | Voice catalog download (ADR-016) | `voice_catalog.rs` | done | unit test |
 | 4 | STT, VOD upload (not used by the app) | | out of scope (ADR-017) | |
 | 5 | `tts_project_service.py`, `video_merge.py`, `capcut_process.py` | | open | |
@@ -95,7 +95,4 @@ the 4-core build container (one run each; more cores make the parallel steps fas
 
 ## Open questions
 
-- Adopt the other upstream client changes (XML-escaped voice/resource id in SSML, poll with the
-  returned `bind_id`, accept `success`/`succeeded`/`completed`/`done`, missing `ret` is not an
-  error)? See ADR-018.
 - First live run against CapCut: `cargo run --release --example tts_live` on the user's machine.

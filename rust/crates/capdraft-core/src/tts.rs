@@ -7,7 +7,7 @@
 //! through [`Transport`] so tests can serve it.
 
 use crate::cache::TtsCache;
-use crate::capcut_client::{DeviceProfile, Request, build_request, device_for, load_device};
+use crate::capcut_client::{DeviceProfile, Request, build_request_for, device_for, load_device};
 use crate::config::AppConfig;
 use crate::ids::randint;
 use crate::json::{Object, Value};
@@ -511,7 +511,7 @@ impl CapCutTts {
         if job.is_cancelled() {
             return Err(CANCELLED.into());
         }
-        let built = build_request(device, req)?;
+        let built = build_request_for(self.settings.device_profile, device, req)?;
         if job.is_cancelled() {
             return Err(CANCELLED.into());
         }
@@ -584,7 +584,7 @@ impl CapCutTts {
         }
         let body = resp.text();
         let json = crate::json::parse(&body)?;
-        if str_of(&json["ret"]) != "0" {
+        if !self.ret_ok(&json) {
             return Err(format!(
                 "ValueError: API Error {}: {}",
                 str_of(&json["ret"]),
@@ -599,6 +599,15 @@ impl CapCutTts {
         if task.is_null() || task_id.is_empty() || token.is_empty() {
             return Err("ValueError: Missing task id/token in response".into());
         }
+        // Upstream polls with the bind id the server returned (task, then data).
+        let bind_id = match self.settings.device_profile {
+            DeviceProfile::Legacy => String::new(),
+            DeviceProfile::Upstream => [&task["bind_id"], &json["data"]["bind_id"]]
+                .into_iter()
+                .find(|v| truthy(v))
+                .map(str_of)
+                .unwrap_or_default(),
+        };
 
         let base = self.settings.poll_interval_sec.max(0.3);
         let max_polls = ((300.0 / base) as usize).max(1);
@@ -614,7 +623,7 @@ impl CapCutTts {
             }
             (self.sleep)(Duration::from_secs_f64(interval));
             interval = (interval * 1.15).min(3.0);
-            let subs = match self.query_task(&poll_device, task_id, token, job) {
+            let subs = match self.query_task(&poll_device, task_id, token, &bind_id, job) {
                 Err(e) if e == CANCELLED => return Ok(()),
                 Err(e) => return Err(e),
                 Ok(None) => continue,
@@ -627,11 +636,40 @@ impl CapCutTts {
     }
 
     /// `None` while the task runs (or on a transient HTTP error).
+    /// `ret` that means success: `"0"` (legacy); also `0`, `""` or missing (upstream).
+    fn ret_ok(&self, json: &Value) -> bool {
+        let ret = &json["ret"];
+        match self.settings.device_profile {
+            DeviceProfile::Legacy => str_of(ret) == "0",
+            DeviceProfile::Upstream => {
+                ret.is_null() || ret.as_i64() == Some(0) || matches!(ret.as_str(), Some("0" | ""))
+            }
+        }
+    }
+
+    fn succeeded(&self, status: &Value) -> bool {
+        match self.settings.device_profile {
+            DeviceProfile::Legacy => status.as_str() == Some("succeed"),
+            DeviceProfile::Upstream => {
+                let s = if truthy(status) {
+                    str_of(status).to_lowercase()
+                } else {
+                    String::new()
+                };
+                matches!(
+                    s.as_str(),
+                    "success" | "succeed" | "succeeded" | "completed" | "done"
+                )
+            }
+        }
+    }
+
     fn query_task(
         &self,
         device: &Object,
         task_id: &str,
         token: &str,
+        bind_id: &str,
         job: &Job<'_>,
     ) -> PyResult<Option<Vec<Value>>> {
         let resp = self.call(
@@ -639,7 +677,7 @@ impl CapCutTts {
             &Request::TtsQuery {
                 task_id,
                 token,
-                bind_id: "",
+                bind_id,
             },
             job,
         )?;
@@ -647,7 +685,7 @@ impl CapCutTts {
             return Ok(None);
         }
         let json = crate::json::parse(&resp.text())?;
-        if str_of(&json["ret"]) != "0" {
+        if !self.ret_ok(&json) {
             return Err(format!(
                 "ValueError: Poll API Error {}: {}",
                 str_of(&json["ret"]),
@@ -659,7 +697,7 @@ impl CapCutTts {
             return Ok(None);
         }
         match task["status"].as_str() {
-            Some("succeed") => {}
+            _ if self.succeeded(&task["status"]) => {}
             Some("failed" | "cancelled") => {
                 return Err(format!(
                     "ValueError: CapCut TTS task {task_id} failed on server side"
@@ -699,7 +737,15 @@ impl CapCutTts {
         for ((idx, text), info) in pending.iter().zip(subs) {
             let duration =
                 to_float(info.get("duration").unwrap_or(&Value::from(0))).unwrap_or(0.0) / 1000.0;
-            let url = &info["speech_url"];
+            // Upstream also takes `audio_url` / `url` when `speech_url` is absent.
+            let url = match self.settings.device_profile {
+                DeviceProfile::Legacy => &info["speech_url"],
+                DeviceProfile::Upstream => ["speech_url", "audio_url", "url"]
+                    .iter()
+                    .map(|k| &info[*k])
+                    .find(|v| v.as_str().is_some_and(|s| !s.is_empty()))
+                    .unwrap_or(&info["speech_url"]),
+            };
             if !truthy(url) {
                 let r = TtsItemResult::failed("Missing speech_url in server response");
                 results.insert(*idx, r.clone());

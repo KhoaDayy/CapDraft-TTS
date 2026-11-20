@@ -553,3 +553,113 @@ fn upstream_device_profile() {
     assert_ne!(chunk_ids[0], chunk_ids[1], "a fresh device per chunk");
     let _ = std::fs::remove_dir_all(&base);
 }
+
+/// A server that answers the upstream way: numeric `ret`, no `ret` on polls,
+/// a `bind_id`, status `Success`, `audio_url` instead of `speech_url`.
+#[derive(Default)]
+struct UpstreamStyle(Mutex<(u32, Vec<String>)>);
+
+impl Transport for UpstreamStyle {
+    fn post(
+        &self,
+        url: &str,
+        _h: &[(String, String)],
+        body: &[u8],
+        _t: Duration,
+    ) -> Result<HttpResponse, String> {
+        let mut st = self.0.lock().unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+        st.1.push(text.clone());
+        if url.contains("/common_task/new") {
+            return Ok(resp(
+                200,
+                r#"{"ret":0,"data":{"bind_id":"BIND-9","tasks":[{"id":"T1","token":"K1"}]}}"#,
+            ));
+        }
+        st.0 += 1;
+        if st.0 < 2 {
+            return Ok(resp(
+                200,
+                r#"{"data":{"tasks":[{"id":"T1","status":"running"}]}}"#,
+            ));
+        }
+        let payload = dumps_compact(
+            &json!({"audio_subtitles": [{"audio_url": "https://cdn.fake/a.mp3", "duration": 1500}]}),
+        );
+        Ok(resp(
+            200,
+            &dumps_compact(
+                &json!({"data": {"tasks": [{"id": "T1", "status": "Success", "payload": payload}]}}),
+            ),
+        ))
+    }
+    fn get(&self, _url: &str, _t: Duration) -> Result<HttpResponse, String> {
+        Ok(resp(200, "MP3"))
+    }
+}
+
+#[test]
+fn upstream_protocol_changes() {
+    let raw = std::env::temp_dir().join(format!("capdraft-w4-proto-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&raw);
+    std::fs::create_dir_all(&raw).unwrap();
+    let base = std::fs::canonicalize(&raw).unwrap();
+    let mk = |profile| TtsSettings {
+        chunk_size: 5,
+        parallel_chunks: 1,
+        poll_interval_sec: 1.0,
+        download_workers: 1,
+        default_voice: "v<1>".into(),
+        default_resource_id: "r&1".into(),
+        default_rate: 1.0,
+        cache_dir: base.join("cache"),
+        projects_dir: base.join("projects"),
+        device_json_path: base.join("none.json"),
+        ffprobe_path: "ffprobe".into(),
+        device_profile: profile,
+    };
+    let never: capdraft_core::tts::CancelCallback = Arc::new(|| false);
+    let items = vec![(1i64, "xin chào".to_owned())];
+
+    let up = Arc::new(UpstreamStyle::default());
+    let tts = CapCutTts::new(
+        mk(capdraft_core::capcut_client::DeviceProfile::Upstream),
+        "",
+        up.clone(),
+    )
+    .unwrap()
+    .with_sleep(Arc::new(|_| {}));
+    let res = tts.generate_tts_batch(&items, None, None, None, &never, &None, false);
+    assert_eq!(res.get(1).unwrap().status, "Downloaded");
+    assert_eq!(res.get(1).unwrap().duration, Some(1.5));
+    let bodies = up.0.lock().unwrap().1.clone();
+    let ssml = cj::parse(
+        cj::parse(&bodies[0]).unwrap()["tasks"][0]["payload"]
+            .as_str()
+            .unwrap(),
+    )
+    .unwrap()["ssml"]
+        .clone();
+    assert!(
+        s(&ssml).contains(r#"name="v&lt;1&gt;""#) && s(&ssml).contains(r#"resource_id="r&amp;1""#)
+    );
+    assert_eq!(
+        cj::parse(&bodies[1]).unwrap()["tasks"][0]["bind_id"].as_str(),
+        Some("BIND-9")
+    );
+
+    // The legacy profile keeps the Python app's rules: a numeric `ret` is an error there.
+    let _ = std::fs::remove_dir_all(base.join("cache"));
+    let tts = CapCutTts::new(
+        mk(capdraft_core::capcut_client::DeviceProfile::Legacy),
+        "",
+        Arc::new(UpstreamStyle::default()),
+    )
+    .unwrap()
+    .with_sleep(Arc::new(|_| {}));
+    assert!(
+        tts.generate_tts_batch(&items, None, None, None, &never, &None, false)
+            .is_empty()
+    );
+    let _ = std::fs::remove_dir_all(&base);
+}

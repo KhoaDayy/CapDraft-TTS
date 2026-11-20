@@ -154,3 +154,13 @@ Consequences: With the default profile the Rust build's requests differ from the
 those device fields only. Other upstream changes (XML-escaped voice and resource id, polling with
 the returned `bind_id`, more success status names, a missing `ret` not being an error) are not
 adopted yet: open question in `MAP.md`.
+
+## ADR-019: The upstream profile also follows upstream's protocol handling
+Status: accepted (2026-11-20), extends ADR-018
+Context: The user accepted the remaining upstream `K07VN/capcut-tts-api` changes (Q11).
+Decision: With `DeviceProfile::Upstream` the client XML-escapes the voice and resource id in the
+SSML, polls with the `bind_id` the server returned (task, then data), accepts `success`, `succeed`,
+`succeeded`, `completed` and `done` (any case), treats a missing, empty or numeric `0` `ret` as
+success, and downloads from `speech_url`, else `audio_url`, else `url`. `prosody rate` keeps the
+user's speed (upstream hard-codes `1.0`). `DeviceProfile::Legacy` is unchanged and remains what
+the golden files check.
