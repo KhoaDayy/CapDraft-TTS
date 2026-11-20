@@ -124,3 +124,33 @@ wave 4 with the TTS client, so one HTTP stack is chosen for both; wave 3 ports p
 and lookup. The log keeps the original's line layout (`[time] [LEVEL] [file:line] - message`)
 but file and line name Rust sources, so logs are not replayed. `AppConfig` is a value the app
 owns, not a process-wide singleton.
+
+## ADR-017: What wave 4 ports from the CapCut client
+Status: accepted (2026-11-20)
+Context: `capcut_common_task_client.py` also has STT (`stt-new`, `stt-query`, `stt-file`) and VOD
+upload with AWS4 signing; the app only calls `tts-new` and `tts-query`. The Python wrapper imported
+the client from `capcut_tts_path` at run time.
+Decision: Port `tts-new` and `tts-query` (query, headers, SSML, MD5 sign header, RSA PKCS#1 v1.5
+payload sign) and the batch wrapper; leave STT and upload out. The client is compiled in, so
+`capcut_tts_path` is no longer read. HTTP goes through `ureq` behind a `Transport` trait.
+Behavior kept on purpose: a chunk that fails before its downloads leaves its captions without a
+result; on cancel, downloads already queued still finish into the cache (results say "Cancelled by
+user"); download errors are worded as `requests` words them.
+Consequences: Wave 4 was verified against a fake CapCut server; the live API was not reachable from
+the build container (the session's permission check refused calling it), so the first live run is
+`cargo run --release --example tts_live` on the user's machine.
+
+## ADR-018: Device profiles; the upstream device by default
+Status: accepted (2026-11-20)
+Context: The TTS client was forked from `K07VN/capcut-tts-api`. Upstream (2026-10-19) now sends
+`device_type`/`device_brand` `MacBookPro17,4` and one random 20-digit id for `device_id`, `iid`
+and `tdid`; its issue tracker advises changing those fields when CapCut blocks a device. The
+user asked for that update.
+Decision: `DeviceProfile::Legacy` reproduces the Python app (the golden files use it);
+`DeviceProfile::Upstream` (default in the Rust app, `config.json` key `tts_device_profile`,
+`legacy` to opt out) uses the upstream model and id layout, a fresh device per chunk, and polls
+with the chunk's own device. `device.json` can still override `device_type`/`device_brand`.
+Consequences: With the default profile the Rust build's requests differ from the Python build's in
+those device fields only. Other upstream changes (XML-escaped voice and resource id, polling with
+the returned `bind_id`, more success status names, a missing `ret` not being an error) are not
+adopted yet: open question in `MAP.md`.

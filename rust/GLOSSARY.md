@@ -22,3 +22,8 @@
 | write targets | Root `draft_content.json` plus each `Timelines/<id>` copy, written all-or-nothing | `ProjectExporter::atomic_write_draft` |
 | precommit snapshot | `<target>.precommit`, the pre-image restored if a later target fails | `atomic_write_draft` |
 | TTS cache key | sha256 of `text|voice|rate:.2f|resource_id` | `TtsCache::generate_hash` |
+| common_task | CapCut's async job API: `tts-new` creates a task, `tts-query` polls it | `capcut_client::Request` |
+| chunk | Up to `tts_chunk_size` captions sent as one TTS task, with its own random device | `CapCutTts::process_chunk` |
+| device profile | The device fields presented to CapCut (`legacy` = Python app, `upstream` = K07VN 2026-10) | `capcut_client::DeviceProfile` |
+| payload sign | RSA PKCS#1 v1.5 of `appid:…&did:…&creditDisable:false&ssml:<md5>&extraInfo:…` | `capcut_client::make_tts_payload_sign` |
+| sign header | md5 of `9e2c|<last 7 path chars>|3|appvr|device-time|tdid|11ac` | `capcut_client::make_sign_header` |

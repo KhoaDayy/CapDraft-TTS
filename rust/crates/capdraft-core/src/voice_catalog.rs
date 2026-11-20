@@ -80,6 +80,47 @@ impl VoiceCatalog {
         Ok(voices)
     }
 
+    /// Download and parse the catalog from `url` (or the current one).
+    ///
+    /// # Errors
+    /// `VoiceCatalogError` when the URL is empty, the download fails, or the
+    /// content is not a usable catalog.
+    pub fn load(
+        &mut self,
+        url: Option<&str>,
+        transport: &dyn crate::tts::Transport,
+        timeout: std::time::Duration,
+    ) -> PyResult<Vec<VoiceOption>> {
+        if let Some(u) = url {
+            self.url = py_strip(u).to_owned();
+        }
+        if self.url.is_empty() {
+            return Err("VoiceCatalogError: Voice catalog URL is empty".into());
+        }
+        let resp = transport
+            .get(&self.url, timeout)
+            .map_err(|e| format!("VoiceCatalogError: Cannot download voice catalog: {e}"))?;
+        if resp.status >= 400 {
+            let kind = if resp.status < 500 {
+                "Client"
+            } else {
+                "Server"
+            };
+            return Err(format!(
+                "VoiceCatalogError: Cannot download voice catalog: {} {kind} Error: {} for url: {}",
+                resp.status, resp.reason, self.url
+            ));
+        }
+        let raw = crate::json::parse(&resp.text()).map_err(|e| {
+            format!(
+                "VoiceCatalogError: Voice catalog is not valid JSON: {}",
+                e.trim_start_matches("JSONDecodeError: ")
+            )
+        })?;
+        let source = self.url.clone();
+        self.load_data(&raw, &source)
+    }
+
     #[must_use]
     pub fn voices(&self) -> &[VoiceOption] {
         &self.voices
@@ -144,5 +185,58 @@ impl VoiceCatalog {
         self.voices
             .iter()
             .find(|v| v.voice_type == voice_type && resource_id.is_none_or(|r| v.resource_id == r))
+    }
+}
+
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests")]
+mod tests {
+    use super::*;
+    use crate::tts::{HttpResponse, Transport};
+    use std::time::Duration;
+
+    struct One(u16, &'static str);
+    impl Transport for One {
+        fn post(
+            &self,
+            _: &str,
+            _: &[(String, String)],
+            _: &[u8],
+            _: Duration,
+        ) -> Result<HttpResponse, String> {
+            Err("no".into())
+        }
+        fn get(&self, _: &str, _: Duration) -> Result<HttpResponse, String> {
+            Ok(HttpResponse {
+                status: self.0,
+                reason: "Not Found".into(),
+                body: self.1.as_bytes().to_vec(),
+            })
+        }
+    }
+
+    #[test]
+    fn load_from_url() {
+        let mut c = VoiceCatalog::new(Some("https://x/Voice.json"));
+        let ok = One(
+            200,
+            r#"[{"lan":"vi","lang":"vi-VN","voice_type":"v1","display_name":"A","resource_id":"1"}]"#,
+        );
+        assert_eq!(c.load(None, &ok, Duration::from_secs(1)).unwrap().len(), 1);
+        assert!(
+            c.load(None, &One(404, ""), Duration::from_secs(1))
+                .unwrap_err()
+                .contains("404 Client Error")
+        );
+        assert!(
+            c.load(None, &One(200, "{bad"), Duration::from_secs(1))
+                .unwrap_err()
+                .starts_with("VoiceCatalogError: Voice catalog is not valid JSON")
+        );
+        assert!(
+            c.load(Some("  "), &ok, Duration::from_secs(1))
+                .unwrap_err()
+                .ends_with("URL is empty")
+        );
     }
 }
