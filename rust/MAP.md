@@ -42,6 +42,20 @@ cargo test --manifest-path rust/Cargo.toml # replays rust/golden/*.jsonl
 - Root `capcut_tts.py` (ADR-003).
 - Platforms other than Windows x64 (ADR-004).
 
+## Check on a real project
+
+```sh
+python rust/tools/check_real_draft.py path/to/draft_content.json
+```
+
+Runs every ported function on the draft in Python and in Rust and compares the outputs byte for
+byte (re-serialized draft, captions, SRT, project info, templates, inspection, validation, both
+split halves, and the whole split project tree), then prints timings. The draft stays outside the
+repository.
+
+Last run (2026-11-20) on a real CapCut 191 project, 19.6 MB, 3,585 captions, 2 h 28 min, no
+TTS yet: all 8 outputs identical, re-serialized draft identical to the original file.
+
 ## Known limits of the recordings
 
 - Mixed-type segment ids with equal time ranges: Python's sort raises `TypeError` with the

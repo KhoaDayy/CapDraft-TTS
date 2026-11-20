@@ -206,16 +206,17 @@ impl DraftReader {
         else {
             return Err(no_draft());
         };
-        let d = self.draft()?.clone();
-        let canvas = or(get(&d, "canvas_config")?, &EMPTY_DICT);
-        let tracks = or(get(&d, "tracks")?, &EMPTY_LIST);
-        let _materials = or(get(&d, "materials")?, &EMPTY_DICT);
+        let d = self.draft.as_ref().ok_or_else(no_draft)?;
+        let canvas = or(get(d, "canvas_config")?, &EMPTY_DICT);
+        let tracks = or(get(d, "tracks")?, &EMPTY_LIST);
+        let _materials = or(get(d, "materials")?, &EMPTY_DICT);
 
-        let tracks_of = |kind: &str| -> PyResult<Vec<Value>> {
+        let track_items = iter(tracks);
+        let tracks_of = |kind: &str| -> PyResult<Vec<&Value>> {
             let mut out = Vec::new();
-            for t in iter(tracks)?.iter() {
+            for t in track_items.as_ref().map_err(Clone::clone)?.iter() {
                 if is_str(get(t, "type")?, kind) {
-                    out.push(t.clone());
+                    out.push(t);
                 }
             }
             Ok(out)
@@ -223,7 +224,7 @@ impl DraftReader {
         let video_tracks = tracks_of("video")?;
         let audio_tracks = tracks_of("audio")?;
         let text_tracks = tracks_of("text")?;
-        let seg_count = |ts: &[Value]| -> PyResult<usize> {
+        let seg_count = |ts: &[&Value]| -> PyResult<usize> {
             let mut n = 0;
             for t in ts {
                 n += py::len(or(get(t, "segments")?, &EMPTY_LIST))?;
@@ -231,15 +232,18 @@ impl DraftReader {
             Ok(n)
         };
 
-        let captions = if self.captions.is_empty() {
-            self.extract_captions()?
+        // `self._captions or self.extract_captions()`; the cache is stored once `d` is no longer borrowed.
+        let fresh = if self.captions.is_empty() {
+            Some(extract_captions(d)?)
         } else {
-            self.captions.clone()
+            None
         };
-        let caption_with_tts_count = with_tts(&captions);
-        let empty_caption_count = empty_count(&captions);
+        let captions = fresh.as_ref().unwrap_or(&self.captions);
+        let caption_with_tts_count = with_tts(captions);
+        let empty_caption_count = empty_count(captions);
+        let caption_count = captions.len();
 
-        let name = get(&d, "name")?;
+        let name = get(d, "name")?;
         let project_name = if truthy(name) {
             str_of(name)
         } else {
@@ -253,19 +257,27 @@ impl DraftReader {
                 "Untitled".into()
             }
         };
-        let project_id = str_of(or(get(&d, "id")?, &Value::String(String::new())));
-        let version = int_or0(get(&d, "version")?)?;
-        let nv = get(&d, "new_version")?;
+        let project_id = str_of(or(get(d, "id")?, &Value::String(String::new())));
+        let version = int_or0(get(d, "version")?)?;
+        let nv = get(d, "new_version")?;
         let new_version = if nv.is_null() { None } else { Some(str_of(nv)) };
         let width = int_or0(get(canvas, "width")?)?;
         let height = int_or0(get(canvas, "height")?)?;
-        let fps_v = get(&d, "fps")?;
+        let fps_v = get(d, "fps")?;
         let fps = if truthy(fps_v) {
             to_float(fps_v)?
         } else {
             30.0
         };
-        let duration_us = int_or0(get(&d, "duration")?)?;
+        let duration_us = int_or0(get(d, "duration")?)?;
+        let (video_segment_count, audio_segment_count, text_segment_count) = (
+            seg_count(&video_tracks)?,
+            seg_count(&audio_tracks)?,
+            seg_count(&text_tracks)?,
+        );
+        if let Some(c) = fresh {
+            self.captions = c;
+        }
         Ok(CapCutProjectInfo {
             project_id,
             project_name,
@@ -280,10 +292,10 @@ impl DraftReader {
             video_track_count: video_tracks.len(),
             audio_track_count: audio_tracks.len(),
             text_track_count: text_tracks.len(),
-            video_segment_count: seg_count(&video_tracks)?,
-            audio_segment_count: seg_count(&audio_tracks)?,
-            text_segment_count: seg_count(&text_tracks)?,
-            caption_count: captions.len(),
+            video_segment_count,
+            audio_segment_count,
+            text_segment_count,
+            caption_count,
             caption_with_tts_count,
             empty_caption_count,
         })
@@ -368,19 +380,20 @@ impl DraftReader {
     ) -> PyResult<ProjectInspectionResult> {
         let info = self.get_project_info()?;
         let captions = self.get_captions()?;
-        let d = self.draft.clone().unwrap_or_else(|| json!({}));
+        let empty = json!({});
+        let d = self.draft.as_ref().unwrap_or(&empty);
         let mut warnings = Vec::new();
         let mut invalid_content = 0;
         let mut orphan_segments = 0;
 
-        let materials = or(get(&d, "materials")?, &EMPTY_DICT);
+        let materials = or(get(d, "materials")?, &EMPTY_DICT);
         let texts = or(get(materials, "texts")?, &EMPTY_LIST);
         let texts_items = iter(texts)?;
         let mut text_by_id: HashSet<Key> = HashSet::new();
         for t in texts_items.iter().filter(|t| is_dict(t)) {
             text_by_id.insert(key(get(t, "id")?)?);
         }
-        let tracks = or(get(&d, "tracks")?, &EMPTY_LIST);
+        let tracks = or(get(d, "tracks")?, &EMPTY_LIST);
         for track in iter(tracks)?.iter() {
             if !is_str(get(track, "type")?, "text") {
                 continue;
