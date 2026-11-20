@@ -342,6 +342,59 @@ class TestPartFileCleanup(unittest.TestCase):
                 self.assertEqual(list(td.glob("*.mp3")), [empty])  # no cache entry
 
 
+class TestCacheConcurrentSameKey(unittest.TestCase):
+    """Duplicate caption texts in parallel chunks cache the same key at once."""
+
+    def test_concurrent_cache_audio_same_key(self):
+        threads_n = 16
+        rounds = 5
+        with tempfile.TemporaryDirectory() as td:
+            td = Path(td)
+            cache_dir = td / "cache"
+            with patch("core.cache.AppConfig") as cfg:
+                cfg.return_value.cache_path = str(cache_dir)
+                cache = TtsCache()
+            payload = os.urandom(512 * 1024)
+            sources = []
+            for i in range(threads_n):
+                src = td / f"src_{i}.mp3"
+                src.write_bytes(payload)
+                sources.append(src)
+            expected = cache_dir / (cache.generate_hash("same text", "v", 1.0, "r") + ".mp3")
+
+            for _ in range(rounds):
+                barrier = threading.Barrier(threads_n)
+                results: list = [None] * threads_n
+                errors: list = []
+
+                def worker(i):
+                    try:
+                        barrier.wait()
+                        results[i] = cache.cache_audio(
+                            sources[i], "same text", "v", 1.0, "r", duration=1.5
+                        )
+                    except Exception as e:  # pragma: no cover - failure path
+                        errors.append(e)
+
+                threads = [threading.Thread(target=worker, args=(i,)) for i in range(threads_n)]
+                for t in threads:
+                    t.start()
+                for t in threads:
+                    t.join(timeout=30)
+
+                self.assertEqual(errors, [])
+                self.assertEqual(results, [expected] * threads_n)
+                self.assertEqual(expected.read_bytes(), payload)
+                path, duration = cache.get_cached_file("same text", "v", 1.0, "r")
+                self.assertEqual(path, expected)
+                self.assertEqual(duration, 1.5)
+                self.assertEqual(list(cache_dir.glob("*.part")), [], "temp files left behind")
+                self.assertEqual(
+                    sorted(p.name for p in cache_dir.iterdir()),
+                    sorted([expected.name, expected.stem + ".meta.json"]),
+                )
+
+
 class TestPartialBatchFailure(unittest.TestCase):
     def test_partial_failure_stats_and_warning_not_silent_success(self):
         # minimal draft with 2 captions

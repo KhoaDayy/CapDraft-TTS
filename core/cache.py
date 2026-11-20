@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import shutil
+import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -47,12 +48,36 @@ class TtsCache:
         except Exception:
             return None
 
+    def _unique_part_path(self, final_path: Path) -> Path:
+        """Create an empty temp file next to ``final_path`` that only this writer owns.
+
+        Several threads can cache the same key at once (duplicate caption
+        texts in parallel chunks), so a shared ``<name>.part`` would be
+        clobbered or replaced out from under another writer.
+        """
+        fd, name = tempfile.mkstemp(dir=self.cache_dir, prefix=final_path.name + ".", suffix=".part")
+        os.close(fd)
+        return Path(name)
+
+    @staticmethod
+    def _discard(path: Optional[Path]):
+        if path is None:
+            return
+        try:
+            path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
     def _write_duration(self, file_hash: str, duration: float):
         meta = self._meta_path(file_hash)
+        part_path: Optional[Path] = None
         try:
-            with open(meta, "w", encoding="utf-8") as f:
+            part_path = self._unique_part_path(meta)
+            with open(part_path, "w", encoding="utf-8") as f:
                 json.dump({"duration": duration}, f)
+            os.replace(part_path, meta)
         except Exception as e:
+            self._discard(part_path)
             logger.warning("Failed to write cache metadata %s: %s", meta, e)
 
     def cache_audio(
@@ -69,18 +94,23 @@ class TtsCache:
             raise ValueError(f"Refuse to cache empty/missing audio: {src}")
         file_hash = self.generate_hash(text, voice, rate, resource_id)
         dest_path = self.cache_dir / f"{file_hash}.mp3"
-        part_path = Path(str(dest_path) + ".part")
+        part_path: Optional[Path] = None
         try:
+            part_path = self._unique_part_path(dest_path)
             shutil.copy2(src, part_path)
             if part_path.stat().st_size <= 0:
                 raise ValueError(f"Cache copy produced empty file: {part_path}")
-            os.replace(part_path, dest_path)
-        except Exception as e:
             try:
-                if part_path.exists():
-                    part_path.unlink()
-            except Exception:
-                pass
+                os.replace(part_path, dest_path)
+            except OSError:
+                # On Windows, replacing a file another writer is replacing (or
+                # a reader holds open) can fail. Content for the same key is
+                # equivalent, so a complete entry already in place is a success.
+                if not (dest_path.exists() and dest_path.stat().st_size > 0):
+                    raise
+                self._discard(part_path)
+        except Exception as e:
+            self._discard(part_path)
             logger.error("Failed to copy file %s to cache: %s", src, e)
             raise
         self._write_duration(file_hash, duration)
