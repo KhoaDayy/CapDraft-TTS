@@ -2,12 +2,13 @@
 
 Goal: a standalone Rust desktop app (Windows x64) that does what the Python app does;
 the Python code stays as reference until cutover. Decisions: [DECISIONS.md](DECISIONS.md)
-(ADR-001 … ADR-007). Terms: [GLOSSARY.md](GLOSSARY.md).
+(ADR-001 … ADR-012). Terms: [GLOSSARY.md](GLOSSARY.md).
 
 How a unit is verified: [ADR-006](DECISIONS.md#adr-006-verify-against-recordings-of-the-python-original).
 
 ```sh
 python rust/tools/record_wave1.py          # re-record (from the repo root)
+python rust/tools/record_wave2.py
 cargo test --manifest-path rust/Cargo.toml # replays rust/golden/*.jsonl
 ```
 
@@ -21,10 +22,12 @@ cargo test --manifest-path rust/Cargo.toml # replays rust/golden/*.jsonl
 | 1 | `core/i18n.py` | `i18n.rs` + `i18n.json` | done | 646/646 |
 | 1 | `core/preferences.py` | `preferences.rs` | done | in i18n.jsonl |
 | 1 | `json.dumps`/`json.loads` semantics (ADR-002) | `pyjson.rs`, `pyfmt.rs` | done | 486/486 + `isspace` set |
-| 2 | `native_audio_alignment.py` | | open | |
-| 2 | `project_split.py` (`slice_draft`, `choose_cut_us`, …) | | open | |
-| 2 | `validator.py` | | open | |
-| 2 | `draft_reader.py` | | open | |
+| 2 | `native_audio_alignment.py` | `alignment.rs` | done | 681/681 |
+| 2 | `project_split.py`: `choose_cut_us`, `slice_draft`, caption edges | `project_split.rs` | done | 1332/1332 |
+| 2 | `project_split.py`: `split_project` (copy, Timelines rename, meta + root_meta) | `project_split.rs` | done | 40 projects, result + whole file tree byte for byte |
+| 2 | `validator.py` | `validator.rs` | done | 417/417 |
+| 2 | `draft_reader.py` (captions, info, templates, inspect, load) | `draft_reader.rs` | done | 1525/1525 + 12 load fixtures |
+| 2 | Python value semantics (ADR-011), ids/clock (ADR-012) | `pyval.rs`, `ids.rs` | done | via the units above |
 | 3 | `draft_patcher.py` | | open | |
 | 3 | `project_exporter.py` (backup, atomic write, rollback) | | open | |
 | 3 | `core/cache.py`, `core/config.py`, `core/logger.py` | | open | |
@@ -32,15 +35,22 @@ cargo test --manifest-path rust/Cargo.toml # replays rust/golden/*.jsonl
 | 4 | `external/capcut-tts-api/capcut_common_task_client.py` (RSA, AWS4 signing, upload) | | open | record signing/payloads; mock HTTP |
 | 4 | `core/capcut_tts.py` (parallel batches, cancel) | | open | |
 | 5 | `tts_project_service.py`, `video_merge.py`, `capcut_process.py` | | open | |
-| 6 | `ui/*` (PySide6) → Rust GUI | | open | framework: open question |
+| 6 | `ui/*` (PySide6) → Rust GUI | | open | Slint (ADR-008) |
 
 ## Out of scope
 
 - Root `capcut_tts.py` (ADR-003).
 - Platforms other than Windows x64 (ADR-004).
 
+## Known limits of the recordings
+
+- Mixed-type segment ids with equal time ranges: Python's sort raises `TypeError` with the
+  operand types of the first failing comparison; the Rust sort may compare another pair first.
+- `json.loads` accepts `NaN`/`Infinity` and lone surrogates, `serde_json` does not (ADR-002).
+- Unassigned code points count as printable in `pyval::repr_str` (Python escapes them).
+- Two mutations survive as equivalent: the dead `else` in `_slice_segment_part2`'s
+  `remain_old`, and `draft_ids` set by the purge, which `register_root_meta` always overwrites.
+
 ## Open questions
 
-- GUI framework for wave 6.
-- Keep `config.json`, cache layout, `Voice.json`, `device.json` formats unchanged?
-- Cutover: ship the Rust build beside the Python release first, or replace it at once?
+None.

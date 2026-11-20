@@ -52,3 +52,37 @@ Status: accepted (2026-11-20)
 Decision: All logic lives in `crates/capdraft-core`; the GUI crate only renders state and
 calls the core. Long jobs report progress through callbacks and support cancellation.
 Consequences: The core can also ship a CLI later at no extra cost.
+
+## ADR-008: Slint for the GUI
+Status: accepted (2026-11-20)
+Context: The current UI uses PySide6-Fluent-Widgets; the caption table must scroll ~5,000 rows.
+Decision: Wave 6 builds the GUI with Slint and its `fluent` style.
+Consequences: Slint's royalty-free license for desktop apps requires attribution
+("Made with Slint", e.g. in the About dialog). Virtualized `ListView` covers the caption table.
+
+## ADR-009: Keep every on-disk format
+Status: accepted (2026-11-20)
+Decision: `config.json`, the TTS cache layout, `Voice.json`, `device.json`, logs, manifests and
+backups keep their names, locations and formats, so the Rust build reads what the Python build wrote.
+
+## ADR-010: Ship the Rust build beside the Python release first
+Status: accepted (2026-11-20)
+Decision: Release the Rust build as a beta next to the Python release; replace the Python
+build once the beta has run on real projects without regressions.
+
+## ADR-011: Reproduce the original's failures on malformed drafts
+Status: accepted (2026-11-20)
+Context: The Python core reads drafts loosely (`int(x or 0)`, `.get` on whatever is there) and
+raises `TypeError`/`ValueError`/`AttributeError` on unexpected types.
+Decision: `capdraft_core::pyval` implements those Python semantics (truthiness, `int()`,
+`float()`, `str()`/`repr()`, iteration, `==` across int/float/bool) and the port returns
+`Err("<PythonType>: <message>")` exactly where the original raises. Recordings mutate draft
+values to reach those paths.
+Consequences: The UI can show the same error text; a future ADR may choose to be more lenient
+than the original, as a recorded known difference.
+
+## ADR-012: Deterministic ids and clock in recordings
+Status: accepted (2026-11-20)
+Decision: `capdraft_core::ids` makes UUIDs (`uuid4().upper()`) and the clock overridable per
+thread. Recorders patch `uuid.uuid4` to `UUID(int=1, 2, …)` and `time.time` to a constant; the
+replay tests set the same sequence, so new ids and whole split projects compare byte for byte.

@@ -2,7 +2,10 @@
 //! written by `rust/tools/record_wave1.py`). A mismatch is a port bug: fix the
 //! port, never the recording.
 
-#![expect(clippy::unwrap_used, reason = "test harness: a malformed golden file should fail loudly")]
+#![expect(
+    clippy::unwrap_used,
+    reason = "test harness: a malformed golden file should fail loudly"
+)]
 
 use capdraft_core::models::{self, CaptionRow, ToneModifyMode};
 use capdraft_core::{i18n, paths, preferences, pyfmt, pyjson, srt};

@@ -133,3 +133,13 @@ pub fn float(v: f64) -> Value {
         .parse::<Number>()
         .map_or(Value::Null, Value::Number)
 }
+
+/// Text written through Python's `open(..., "w")`: `\n` becomes `\r\n` on Windows.
+#[must_use]
+pub fn text_mode(s: &str) -> String {
+    if cfg!(windows) {
+        s.replace('\n', "\r\n")
+    } else {
+        s.to_owned()
+    }
+}

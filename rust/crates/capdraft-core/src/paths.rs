@@ -46,7 +46,7 @@ pub fn ensure_draftpath_placeholder(draft: &Value) -> String {
     find_draftpath_placeholder(draft).unwrap_or_else(|| {
         format!(
             "##_draftpath_placeholder_{}_##",
-            uuid::Uuid::new_v4().to_string().to_uppercase()
+            crate::ids::new_uuid_upper()
         )
     })
 }
