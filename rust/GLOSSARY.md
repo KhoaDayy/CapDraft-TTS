@@ -27,3 +27,5 @@
 | device profile | The device fields presented to CapCut (`legacy` = Python app, `upstream` = K07VN 2026-10) | `capcut_client::DeviceProfile` |
 | payload sign | RSA PKCS#1 v1.5 of `appid:…&did:…&creditDisable:false&ssml:<md5>&extraInfo:…` | `capcut_client::make_tts_payload_sign` |
 | sign header | md5 of `9e2c|<last 7 path chars>|3|appvr|device-time|tdid|11ac` | `capcut_client::make_sign_header` |
+| inbox | Log lines, progress and per-caption results queued by worker threads for the UI | `capdraft-app` `Inbox`, `Ctx::drain` |
+| pump | The 100 ms UI timer that drains the inbox into the window | `capdraft-app` `run` |

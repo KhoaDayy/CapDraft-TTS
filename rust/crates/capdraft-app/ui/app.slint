@@ -1,0 +1,654 @@
+// CapDraft TTS main window (Slint, fluent style). Port of ui/main_window.py.
+// Texts come from the Tr global, filled from capdraft_core::i18n at startup.
+
+import { Button, CheckBox, ComboBox, LineEdit, ListView, ProgressIndicator, GroupBox, ScrollView, Palette, TabWidget, AboutSlint, VerticalBox, HorizontalBox } from "std-widgets.slint";
+
+export struct CaptionItem {
+    checked: bool,
+    index: string,
+    start: string,
+    end: string,
+    text: string,
+    has-tts: string,
+    status: string,
+    duration: string,
+    error: string,
+    // 0 normal, 1 done, 2 cached, 3 failed, 4 empty
+    tone: int,
+    source: int,
+}
+
+export struct LogItem {
+    text: string,
+    // 0 info, 1 success, 2 warning, 3 error, 4 cached
+    kind: int,
+}
+
+export global Tr {
+    in property <string> window-title: "CapDraft TTS";
+    in property <string> capcut-project: "CapCut project";
+    in property <string> choose-project: "Choose project";
+    in property <string> project-placeholder: "";
+    in property <string> reload-project: "Reload";
+    in property <string> export-srt: "Export SRT";
+    in property <string> split-project: "Split in 2";
+    in property <string> merge-videos: "Merge videos";
+    in property <string> voice-settings: "Voice settings";
+    in property <string> search-voice: "Search voices…";
+    in property <string> language-label: "Language";
+    in property <string> voice-label: "Voice";
+    in property <string> voice-speed: "Voice speed";
+    in property <string> pitch: "Pitch";
+    in property <string> existing-tts: "Existing TTS";
+    in property <string> advanced-options: "Advanced options";
+    in property <string> use-cache: "Use TTS cache";
+    in property <string> align-tts: "Prevent TTS head offset";
+    in property <string> trim-start: "Head trim";
+    in property <string> fade-in: "Fade-in";
+    in property <string> search-caption: "Search caption text…";
+    in property <string> select-all: "Select all";
+    in property <string> deselect-all: "Deselect all";
+    in property <string> hide-empty: "Hide empty";
+    in property <string> without-tts: "Without TTS";
+    in property <string> only-errors: "Errors only";
+    in property <string> table-start: "Start";
+    in property <string> table-end: "End";
+    in property <string> table-content: "Content";
+    in property <string> table-has-tts: "Has TTS";
+    in property <string> table-status: "Status";
+    in property <string> table-duration: "Duration";
+    in property <string> table-error: "Error";
+    in property <string> cancel: "Cancel";
+    in property <string> app-settings: "Settings";
+    in property <string> clear-log: "Clear log";
+    in property <string> copy-log: "Copy log";
+    in property <string> save-log: "Save log";
+    in property <string> log-title: "Log";
+}
+
+component Cell inherits Text {
+    vertical-alignment: center;
+    overflow: elide;
+    font-size: 12px;
+}
+
+component CaptionTable inherits Rectangle {
+    in property <[CaptionItem]> rows;
+    in property <bool> checks-enabled: true;
+    in property <string> empty-text;
+    callback toggled(int, bool);
+    property <length> w-check: 34px;
+    property <length> w-index: 52px;
+    property <length> w-time: 84px;
+    property <length> w-tts: 70px;
+    property <length> w-status: 76px;
+    property <length> w-dur: 70px;
+    property <length> w-err: 170px;
+    border-width: 1px;
+    border-color: Palette.border;
+    border-radius: 4px;
+    VerticalLayout {
+        Rectangle {
+            height: 28px;
+            background: Palette.alternate-background;
+            HorizontalLayout {
+                padding-left: 6px;
+                padding-right: 6px;
+                spacing: 6px;
+                Rectangle { width: w-check; }
+                Cell { width: w-index; text: "#"; font-weight: 600; }
+                Cell { width: w-time; text: Tr.table-start; font-weight: 600; }
+                Cell { width: w-time; text: Tr.table-end; font-weight: 600; }
+                Cell { horizontal-stretch: 1; text: Tr.table-content; font-weight: 600; }
+                Cell { width: w-tts; text: Tr.table-has-tts; font-weight: 600; }
+                Cell { width: w-status; text: Tr.table-status; font-weight: 600; }
+                Cell { width: w-dur; text: Tr.table-duration; font-weight: 600; }
+                Cell { width: w-err; text: Tr.table-error; font-weight: 600; }
+            }
+        }
+        Rectangle {
+            vertical-stretch: 1;
+            list := ListView {
+                for row[i] in rows: Rectangle {
+                    height: 26px;
+                    background: Math.mod(i, 2) == 0 ? transparent : Palette.alternate-background.with-alpha(0.45);
+                    HorizontalLayout {
+                        padding-left: 6px;
+                        padding-right: 6px;
+                        spacing: 6px;
+                        Rectangle {
+                            width: w-check;
+                            CheckBox {
+                                checked: row.checked;
+                                enabled: checks-enabled && row.tone != 4;
+                                toggled => { root.toggled(row.source, self.checked); }
+                            }
+                        }
+                        Cell { width: w-index; text: row.index; color: Palette.foreground.with-alpha(0.7); }
+                        Cell { width: w-time; text: row.start; }
+                        Cell { width: w-time; text: row.end; }
+                        Cell { horizontal-stretch: 1; text: row.text; }
+                        Cell { width: w-tts; text: row.has-tts; }
+                        Cell {
+                            width: w-status;
+                            text: row.status;
+                            color: row.tone == 3 ? #ef4444 : row.tone == 1 ? #059669 : row.tone == 2 ? #0d9488 : row.tone == 4 ? Palette.foreground.with-alpha(0.5) : Palette.foreground;
+                        }
+                        Cell { width: w-dur; text: row.duration; }
+                        Cell { width: w-err; text: row.error; color: #ef4444; }
+                    }
+                }
+            }
+            if rows.length == 0: Text {
+                text: empty-text;
+                color: Palette.foreground.with-alpha(0.6);
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+    }
+}
+
+component LogPanel inherits Rectangle {
+    in property <[LogItem]> lines;
+    // bumped by the app on every new line (the model itself is edited in place)
+    in property <int> revision;
+    callback clear();
+    callback copy();
+    callback save();
+    border-width: 1px;
+    border-color: Palette.border;
+    border-radius: 4px;
+    VerticalLayout {
+        padding: 6px;
+        spacing: 4px;
+        HorizontalLayout {
+            spacing: 6px;
+            Text { text: Tr.log-title; font-weight: 600; vertical-alignment: center; }
+            Rectangle { horizontal-stretch: 1; }
+            Button { text: Tr.clear-log; clicked => { root.clear(); } }
+            Button { text: Tr.copy-log; clicked => { root.copy(); } }
+            Button { text: Tr.save-log; clicked => { root.save(); } }
+        }
+        log := ListView {
+            vertical-stretch: 1;
+            for line in lines: Text {
+                text: line.text;
+                font-family: "Consolas";
+                font-size: 12px;
+                // one line per row: the list estimates its height from the rows it has
+                // laid out, so wrapped rows would stop auto-scroll short (copy/save keep it all)
+                wrap: no-wrap;
+                overflow: elide;
+                color: line.kind == 3 ? #ef4444 : line.kind == 2 ? #d97706 : line.kind == 1 ? #059669 : line.kind == 4 ? #0d9488 : Palette.foreground;
+            }
+        }
+    }
+    public function follow() {
+        log.viewport-y = min(0px, log.visible-height - log.viewport-height);
+    }
+    // the app also calls follow() for a few ticks after a line, once sizes have settled
+    changed revision => {
+        root.follow();
+    }
+}
+
+export component AppWindow inherits Window {
+    title: Tr.window-title;
+    min-width: 1000px;
+    min-height: 720px;
+    preferred-width: 1280px;
+    preferred-height: 860px;
+
+    // 0 auto, 1 light, 2 dark
+    in property <int> theme-mode;
+    in-out property <string> project-path;
+    in property <string> project-info;
+    in property <bool> has-project;
+    in property <bool> busy;
+    in property <bool> cancelling;
+    in property <string> generate-text;
+
+    in property <[string]> languages;
+    in-out property <int> language-index;
+    in property <[string]> voices;
+    in-out property <int> voice-index;
+    in-out property <string> voice-value;
+    in-out property <string> language-value;
+    in-out property <string> voice-search;
+    in property <string> voice-meta;
+    in-out property <string> clip-speed: "1.0";
+    in property <[string]> tone-options;
+    in-out property <int> tone-index;
+    in property <[string]> existing-options;
+    in-out property <int> existing-index;
+
+    in-out property <bool> advanced-open;
+    in-out property <bool> use-cache: true;
+    in-out property <bool> align: true;
+    in-out property <string> trim-frames: "3";
+    in-out property <string> fade-ms: "8";
+    in property <string> align-hint;
+
+    in-out property <string> caption-search;
+    in-out property <bool> hide-empty: true;
+    in-out property <bool> only-no-tts;
+    in-out property <bool> only-errors;
+    in property <string> selection-text;
+    in property <string> empty-text;
+    in property <[CaptionItem]> rows;
+
+    in property <[LogItem]> log-lines;
+    in property <int> log-revision;
+    public function follow-log() { log-panel.follow(); }
+    in property <float> progress;
+    in property <string> progress-text;
+
+    in property <bool> notice-visible;
+    in property <string> notice-title;
+    in property <string> notice-body;
+    // 0 info, 1 success, 2 warning, 3 error
+    in property <int> notice-kind;
+
+    callback browse-project();
+    callback reload-project();
+    callback export-srt();
+    callback split-project();
+    callback merge-videos();
+    callback language-changed(int);
+    callback voice-changed(int);
+    callback voice-search-edited(string);
+    callback filters-changed();
+    callback select-visible(bool);
+    callback row-toggled(int, bool);
+    callback generate();
+    callback cancel();
+    callback open-settings();
+    callback trim-edited();
+    callback clear-log();
+    callback copy-log();
+    callback save-log();
+    callback dismiss-notice();
+
+    init => {
+        Palette.color-scheme = theme-mode == 2 ? ColorScheme.dark : theme-mode == 1 ? ColorScheme.light : ColorScheme.unknown;
+    }
+    changed theme-mode => {
+        Palette.color-scheme = theme-mode == 2 ? ColorScheme.dark : theme-mode == 1 ? ColorScheme.light : ColorScheme.unknown;
+    }
+
+    Rectangle {
+        background: Palette.background;
+    }
+
+    VerticalLayout {
+        padding: 10px;
+        spacing: 8px;
+
+        GroupBox {
+            title: Tr.capcut-project;
+            VerticalLayout {
+                spacing: 6px;
+                HorizontalLayout {
+                    spacing: 6px;
+                    LineEdit {
+                        horizontal-stretch: 1;
+                        text <=> root.project-path;
+                        placeholder-text: Tr.project-placeholder;
+                        enabled: !busy;
+                        accepted => { root.reload-project(); }
+                    }
+                    Button { text: Tr.choose-project; enabled: !busy; clicked => { root.browse-project(); } }
+                    Button { text: "⟳"; enabled: !busy && project-path != ""; clicked => { root.reload-project(); } }
+                    Button { text: Tr.export-srt; enabled: !busy && has-project; clicked => { root.export-srt(); } }
+                    Button { text: Tr.split-project; enabled: !busy && has-project; clicked => { root.split-project(); } }
+                    Button { text: Tr.merge-videos; enabled: !busy; clicked => { root.merge-videos(); } }
+                }
+                Text {
+                    text: project-info;
+                    color: Palette.foreground.with-alpha(0.7);
+                    font-size: 12px;
+                    overflow: elide;
+                }
+            }
+        }
+
+        GroupBox {
+            title: Tr.voice-settings;
+            // rows of label(110) | field (1) | label(72) | field (2), as the original grid
+            VerticalLayout {
+                spacing: 8px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    Text { width: 110px; text: Tr.language-label; vertical-alignment: center; }
+                    ComboBox {
+                        horizontal-stretch: 1;
+                        model: languages;
+                        current-index <=> root.language-index;
+                        current-value <=> root.language-value;
+                        enabled: !busy;
+                        selected => { root.language-changed(self.current-index); }
+                    }
+                    Text { width: 72px; text: Tr.voice-label; vertical-alignment: center; }
+                    HorizontalLayout {
+                        horizontal-stretch: 2;
+                        spacing: 6px;
+                        ComboBox {
+                            horizontal-stretch: 1;
+                            model: voices;
+                            current-index <=> root.voice-index;
+                            current-value <=> root.voice-value;
+                            enabled: !busy;
+                            selected => { root.voice-changed(self.current-index); }
+                        }
+                        LineEdit {
+                            width: 170px;
+                            placeholder-text: Tr.search-voice;
+                            text <=> root.voice-search;
+                            enabled: !busy;
+                            edited(t) => { root.voice-search-edited(t); }
+                        }
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 8px;
+                    Rectangle { width: 110px; }
+                    Rectangle { horizontal-stretch: 1; }
+                    Rectangle { width: 72px; }
+                    Text {
+                        horizontal-stretch: 2;
+                        text: voice-meta;
+                        color: Palette.foreground.with-alpha(0.6);
+                        font-size: 11px;
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 8px;
+                    Text { width: 110px; text: Tr.voice-speed; vertical-alignment: center; }
+                    HorizontalLayout {
+                        horizontal-stretch: 1;
+                        LineEdit { width: 90px; text <=> root.clip-speed; input-type: decimal; enabled: !busy; }
+                        Text { text: " x"; vertical-alignment: center; }
+                        Rectangle { horizontal-stretch: 1; }
+                    }
+                    Text { width: 72px; text: Tr.pitch; vertical-alignment: center; }
+                    ComboBox { horizontal-stretch: 2; model: tone-options; current-index <=> root.tone-index; enabled: !busy; }
+                }
+                HorizontalLayout {
+                    spacing: 8px;
+                    Text { width: 110px; text: Tr.existing-tts; vertical-alignment: center; }
+                    ComboBox { horizontal-stretch: 1; model: existing-options; current-index <=> root.existing-index; enabled: !busy; }
+                }
+            }
+        }
+
+        VerticalLayout {
+            spacing: 4px;
+            HorizontalLayout {
+                Button {
+                    text: (advanced-open ? "▾ " : "▸ ") + Tr.advanced-options;
+                    enabled: !busy;
+                    clicked => { root.advanced-open = !root.advanced-open; }
+                }
+                Rectangle { horizontal-stretch: 1; }
+            }
+            if advanced-open: GridLayout {
+                padding-left: 10px;
+                spacing: 8px;
+                Row {
+                    CheckBox { colspan: 2; text: Tr.use-cache; checked <=> root.use-cache; enabled: !busy; }
+                    CheckBox { colspan: 2; text: Tr.align-tts; checked <=> root.align; enabled: !busy; }
+                }
+                Row {
+                    Text { text: Tr.trim-start; vertical-alignment: center; min-width: 96px; }
+                    HorizontalLayout {
+                        LineEdit { width: 80px; text <=> root.trim-frames; input-type: decimal; enabled: !busy && align; edited => { root.trim-edited(); } }
+                        Text { text: " frames"; vertical-alignment: center; }
+                    }
+                    Text { text: Tr.fade-in; vertical-alignment: center; min-width: 72px; }
+                    HorizontalLayout {
+                        LineEdit { width: 80px; text <=> root.fade-ms; input-type: decimal; enabled: !busy && align; }
+                        Text { text: " ms"; vertical-alignment: center; }
+                        Rectangle { horizontal-stretch: 1; }
+                    }
+                }
+                Row {
+                    Rectangle {}
+                    Text { colspan: 3; text: align-hint; color: Palette.foreground.with-alpha(0.6); font-size: 11px; }
+                }
+            }
+        }
+
+        VerticalLayout {
+            vertical-stretch: 4;
+            spacing: 6px;
+            HorizontalLayout {
+                spacing: 6px;
+                LineEdit {
+                    horizontal-stretch: 1;
+                    placeholder-text: Tr.search-caption;
+                    text <=> root.caption-search;
+                    enabled: !busy;
+                    edited => { root.filters-changed(); }
+                }
+                Button { text: Tr.select-all; enabled: !busy; clicked => { root.select-visible(true); } }
+                Button { text: Tr.deselect-all; enabled: !busy; clicked => { root.select-visible(false); } }
+                CheckBox { text: Tr.hide-empty; checked <=> root.hide-empty; enabled: !busy; toggled => { root.filters-changed(); } }
+                CheckBox { text: Tr.without-tts; checked <=> root.only-no-tts; enabled: !busy; toggled => { root.filters-changed(); } }
+                CheckBox { text: Tr.only-errors; checked <=> root.only-errors; toggled => { root.filters-changed(); } }
+            }
+            Text { text: selection-text; color: Palette.foreground.with-alpha(0.7); font-size: 12px; }
+            CaptionTable {
+                vertical-stretch: 1;
+                rows: root.rows;
+                checks-enabled: !busy;
+                empty-text: root.empty-text;
+                toggled(i, on) => { root.row-toggled(i, on); }
+            }
+        }
+
+        log-panel := LogPanel {
+            vertical-stretch: 1;
+            min-height: 140px;
+            lines: root.log-lines;
+            revision: root.log-revision;
+            clear => { root.clear-log(); }
+            copy => { root.copy-log(); }
+            save => { root.save-log(); }
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                spacing: 2px;
+                ProgressIndicator { progress: root.progress; height: 6px; }
+                Text { text: progress-text; font-size: 12px; color: Palette.foreground.with-alpha(0.75); }
+            }
+            Button { text: Tr.cancel; enabled: busy && !cancelling; clicked => { root.cancel(); } }
+            Button {
+                text: generate-text;
+                primary: true;
+                enabled: has-project && !busy;
+                clicked => { root.generate(); }
+            }
+            Button { text: "⚙ " + Tr.app-settings; enabled: !busy; clicked => { root.open-settings(); } }
+        }
+    }
+
+    if notice-visible: Rectangle {
+        x: parent.width - self.width - 16px;
+        y: 16px;
+        width: min(460px, parent.width - 32px);
+        height: notice-layout.preferred-height;
+        border-radius: 6px;
+        drop-shadow-blur: 8px;
+        drop-shadow-color: #00000040;
+        background: notice-kind == 3 ? #fde8e8 : notice-kind == 2 ? #fff4e0 : notice-kind == 1 ? #e3f7ec : #e8f0fe;
+        border-width: 1px;
+        border-color: notice-kind == 3 ? #ef4444 : notice-kind == 2 ? #d97706 : notice-kind == 1 ? #059669 : #3b82f6;
+        notice-layout := VerticalLayout {
+            padding: 12px;
+            spacing: 4px;
+            HorizontalLayout {
+                Text { text: notice-title; font-weight: 700; color: #111827; horizontal-stretch: 1; }
+                TouchArea {
+                    width: 20px;
+                    clicked => { root.dismiss-notice(); }
+                    Text { text: "✕"; color: #374151; }
+                }
+            }
+            Text { text: notice-body; wrap: word-wrap; color: #1f2937; font-size: 12px; }
+        }
+    }
+}
+
+export component SettingsWindow inherits Window {
+    title: heading;
+    preferred-width: 700px;
+    preferred-height: 520px;
+    in property <string> heading;
+    in property <string> description;
+    in property <[string]> language-names;
+    in-out property <int> language-index;
+    in property <[string]> theme-names;
+    in-out property <int> theme-index;
+    in property <string> restart-note;
+    in-out property <string> device-json-path;
+    in-out property <string> ffprobe-path;
+    in-out property <string> ffmpeg-path;
+    in-out property <string> voice-catalog-url;
+    in property <string> voice-status;
+    in-out property <string> chunk-size;
+    in-out property <string> parallel-chunks;
+    in-out property <string> download-workers;
+    in-out property <string> poll-interval;
+    in-out property <string> max-backups;
+    in property <[string]> profile-names;
+    in-out property <int> profile-index;
+    in property <string> t-appearance;
+    in property <string> t-language;
+    in property <string> t-theme;
+    in property <string> t-paths;
+    in property <string> t-voices;
+    in property <string> t-performance;
+    in property <string> t-voice-url;
+    in property <string> t-reload-list;
+    in property <string> t-chunk;
+    in property <string> t-parallel;
+    in property <string> t-workers;
+    in property <string> t-poll;
+    in property <string> t-backups;
+    in property <string> t-save;
+    in property <string> t-cancel;
+    in property <string> t-choose;
+    callback save();
+    callback cancel();
+    callback browse-device();
+    callback reload-voices();
+
+    VerticalBox {
+        Text { text: heading; font-size: 18px; font-weight: 700; }
+        Text { text: description; color: Palette.foreground.with-alpha(0.7); wrap: word-wrap; }
+        TabWidget {
+            vertical-stretch: 1;
+            Tab {
+                title: t-appearance;
+                GridLayout {
+                    padding: 16px;
+                    spacing: 12px;
+                    Row {
+                        Text { text: t-language; vertical-alignment: center; }
+                        ComboBox { model: language-names; current-index <=> root.language-index; }
+                    }
+                    Row {
+                        Text { text: t-theme; vertical-alignment: center; }
+                        ComboBox { model: theme-names; current-index <=> root.theme-index; }
+                    }
+                    Row {
+                        Rectangle {}
+                        Text { text: restart-note; wrap: word-wrap; color: Palette.foreground.with-alpha(0.7); }
+                    }
+                    Row { Rectangle { vertical-stretch: 1; } }
+                }
+            }
+            Tab {
+                title: t-paths;
+                GridLayout {
+                    padding: 16px;
+                    spacing: 12px;
+                    Row {
+                        Text { text: "device.json"; vertical-alignment: center; }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            LineEdit { horizontal-stretch: 1; text <=> root.device-json-path; }
+                            Button { text: t-choose; clicked => { root.browse-device(); } }
+                        }
+                    }
+                    Row {
+                        Text { text: "FFmpeg"; vertical-alignment: center; }
+                        LineEdit { text <=> root.ffmpeg-path; }
+                    }
+                    Row {
+                        Text { text: "FFprobe"; vertical-alignment: center; }
+                        LineEdit { text <=> root.ffprobe-path; }
+                    }
+                    Row { Rectangle { vertical-stretch: 1; } }
+                }
+            }
+            Tab {
+                title: t-voices;
+                GridLayout {
+                    padding: 16px;
+                    spacing: 12px;
+                    Row {
+                        Text { text: t-voice-url; vertical-alignment: center; }
+                        LineEdit { text <=> root.voice-catalog-url; }
+                    }
+                    Row {
+                        Rectangle {}
+                        HorizontalLayout {
+                            spacing: 8px;
+                            Button { text: t-reload-list; clicked => { root.reload-voices(); } }
+                            Text { text: voice-status; vertical-alignment: center; wrap: word-wrap; horizontal-stretch: 1; }
+                        }
+                    }
+                    Row {
+                        Text { text: "Device profile"; vertical-alignment: center; }
+                        ComboBox { model: profile-names; current-index <=> root.profile-index; }
+                    }
+                    Row { Rectangle { vertical-stretch: 1; } }
+                }
+            }
+            Tab {
+                title: t-performance;
+                GridLayout {
+                    padding: 16px;
+                    spacing: 12px;
+                    Row { Text { text: t-chunk; vertical-alignment: center; } LineEdit { text <=> root.chunk-size; input-type: number; } }
+                    Row { Text { text: t-parallel; vertical-alignment: center; } LineEdit { text <=> root.parallel-chunks; input-type: number; } }
+                    Row { Text { text: t-workers; vertical-alignment: center; } LineEdit { text <=> root.download-workers; input-type: number; } }
+                    Row { Text { text: t-poll; vertical-alignment: center; } LineEdit { text <=> root.poll-interval; input-type: decimal; } }
+                    Row { Text { text: t-backups; vertical-alignment: center; } LineEdit { text <=> root.max-backups; input-type: number; } }
+                    Row { Rectangle { vertical-stretch: 1; } }
+                }
+            }
+            Tab {
+                title: "About";
+                VerticalBox {
+                    alignment: start;
+                    Text { text: "CapDraft TTS"; font-size: 16px; font-weight: 700; }
+                    Text { text: "Free CapCut TTS for your captions. Rust build."; wrap: word-wrap; }
+                    AboutSlint { }
+                }
+            }
+        }
+        HorizontalLayout {
+            spacing: 8px;
+            Rectangle { horizontal-stretch: 1; }
+            Button { text: t-cancel; clicked => { root.cancel(); } }
+            Button { text: t-save; primary: true; clicked => { root.save(); } }
+        }
+    }
+}

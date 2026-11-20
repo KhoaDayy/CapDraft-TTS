@@ -1,0 +1,28 @@
+[package]
+name = "capdraft-app"
+description = "CapDraft TTS desktop app (Slint)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "CapDraft-TTS"
+path = "src/main.rs"
+
+[dependencies]
+capdraft-core = { path = "../capdraft-core" }
+slint = "1"
+rfd = { version = "0.15", default-features = false, features = ["xdg-portal", "async-std"] }
+arboard = { version = "3", default-features = false }
+mimalloc = { version = "0.1", default-features = false }
+
+[build-dependencies]
+slint-build = "1"
+
+# Slint's generated code carries #[allow(unsafe_code)]: deny (overridable there) instead of forbid.
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+unwrap_used = "warn"

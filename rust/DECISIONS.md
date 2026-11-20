@@ -182,3 +182,29 @@ Decision:
   it); the app loads it in the background through `get_voice_catalog`.
 Consequences: Project folders, cache files and logs stay byte-identical to the Python run
 (`rust/tools/check_pipeline.py`); only temp files, fsyncs and timings differ.
+
+## ADR-021: How the Slint app maps the PySide6 window
+Status: accepted (2026-11-20)
+Context: Wave 6 replaces `ui/main_window.py` and `ui/settings_dialog.py`. A GUI has no golden
+recordings; the behavior to keep is what the user sees and what reaches `capdraft-core`.
+Decision:
+- One window (`ui/app.slint`) with the same sections, texts (from `i18n.json`) and dialogs as
+  the original; the settings dialog is a second Slint window with the same five tabs and writes
+  the same `config.json` keys. The About tab shows `AboutSlint` (ADR-008 attribution).
+- Every core call (load, inspect, generate, split, merge, SRT, voice catalog) runs on a worker
+  thread. Workers queue log lines, progress and per-caption results; a 100 ms timer applies
+  them, so thousands of captions never flood the UI thread.
+- The caption table and the log are virtualized `ListView`s over models that are edited in
+  place. Log rows are one line each (elided; Copy and Save keep the full text), because the list
+  estimates its height from the rows it has laid out and wrapped rows stop auto-scroll short.
+- ComboBox models are installed once and only their rows change: Slint resets a ComboBox's
+  index whenever its model property is replaced, after the code that set the new index.
+- File and folder pickers are native (`rfd`), the clipboard is `arboard`, the allocator mimalloc.
+- A project path given as the first argument is opened at start (drag a folder onto the exe).
+- Debug builds only: `CAPDRAFT_DEBUG_HTTP=http://host:port` sends every
+  `https://<host>/<path>` request to `<base>/<host>/<path>`, so the GUI can run Generate against
+  `tools/fakecapcut.py`. Release builds always talk to CapCut.
+Consequences: Checked by hand under Xvfb on Linux (load a 320-caption project, voice and
+language pickers, filters, advanced options, settings, Generate of 240 captions against the
+fake CapCut with progress, per-row status and reload). Windows itself is checked by the first
+release build and the user's first run.

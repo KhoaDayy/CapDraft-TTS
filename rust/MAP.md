@@ -2,7 +2,7 @@
 
 Goal: a standalone Rust desktop app (Windows x64) that does what the Python app does;
 the Python code stays as reference until cutover. Decisions: [DECISIONS.md](DECISIONS.md)
-(ADR-001 … ADR-020). Terms: [GLOSSARY.md](GLOSSARY.md).
+(ADR-001 … ADR-021). Terms: [GLOSSARY.md](GLOSSARY.md).
 
 How a unit is verified: [ADR-006](DECISIONS.md#adr-006-verify-against-recordings-of-the-python-original).
 
@@ -47,7 +47,7 @@ cargo test --manifest-path rust/Cargo.toml # replays rust/golden/*.jsonl
 | 5 | `tts_project_service.py` (load, inspect, SRT, catalog, generate-and-attach) | `service.rs` | done | 19 runs: result, every log event, progress, callbacks, requests, whole project tree |
 | 5 | `video_merge.py` (stream copy, re-encode fallback) | `video_merge.rs` | done | 9 merges with the real ffmpeg through a logging wrapper |
 | 5 | `capcut_process.py` | `capcut_process.rs` | done | not replayed (depends on running processes) |
-| 6 | `ui/*` (PySide6) → Rust GUI | | open | Slint (ADR-008) |
+| 6 | `ui/main_window.py`, `ui/settings_dialog.py`, `main.py` (PySide6) | `crates/capdraft-app` (Slint, ADR-008, ADR-021) | done | no recordings (a GUI); checked by hand under Xvfb, Generate against the fake CapCut |
 
 ## Out of scope
 
@@ -101,6 +101,24 @@ with 10 captions lost to the cache race (ADR-020), 3.6 s Rust with none (3.6x).
 - Two mutations survive as equivalent: the dead `else` in `_slice_segment_part2`'s
   `remain_old`, and `draft_ids` set by the purge, which `register_root_meta` always overwrites.
 
+## Run the app
+
+```sh
+cargo run --release -p capdraft-app                       # from rust/
+cargo run --release -p capdraft-app -- path/to/project    # opens a project at start
+```
+
+The binary reads and writes `config.json`, `cache/`, `logs/` and
+`external/capcut-tts-api/device.json` next to itself, like the Python build (ADR-009). The release
+workflow packages `CapDraft-TTS.exe` with `device.json` as
+`CapDraft-TTS-v<version>-rust-beta-windows-x64.zip` beside the Python zip (ADR-010).
+
+For GUI testing without CapCut, a debug build sends every `https://<host>/<path>` request to
+`$CAPDRAFT_DEBUG_HTTP/<host>/<path>` (ADR-021); serve `tools/fakecapcut.py` there.
+
 ## Open questions
 
-- First live run against CapCut: `cargo run --release --example tts_live` on the user's machine.
+- First live run against CapCut: `cargo run --release --example tts_live` on the user's machine,
+  then a Generate from the app on a real project.
+- The app has not run on Windows yet (built and driven on Linux under Xvfb); the first release
+  workflow run builds it on `windows-latest`.
