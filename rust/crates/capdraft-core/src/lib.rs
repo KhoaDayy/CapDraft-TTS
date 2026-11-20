@@ -7,6 +7,7 @@ pub mod alignment;
 pub mod draft_reader;
 pub mod i18n;
 pub mod ids;
+pub mod json;
 pub mod models;
 pub mod paths;
 pub mod preferences;

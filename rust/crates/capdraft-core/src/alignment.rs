@@ -2,10 +2,11 @@
 //! and add an `audio_fade` (port of `native_audio_alignment.py`). No re-encode.
 
 use crate::ids::new_uuid_upper;
+use crate::json::{Object, Value};
+use crate::jv as json;
 use crate::models::compute_target_duration_us;
 use crate::pyfmt::round_half_even;
 use crate::pyjson::{float, int};
-use serde_json::{Map, Value, json};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct NativeAudioAlignmentSettings {
@@ -60,8 +61,8 @@ pub fn ms_to_us(ms: f64) -> i64 {
     reason = "mirrors the original keyword arguments"
 )]
 pub fn apply_native_audio_alignment(
-    audio_segment: &mut Map<String, Value>,
-    audio_material: &mut Map<String, Value>,
+    audio_segment: &mut Object,
+    audio_material: &mut Object,
     audio_fade_materials: &mut Vec<Value>,
     caption_start_us: i64,
     raw_duration_us: i64,
@@ -71,7 +72,7 @@ pub fn apply_native_audio_alignment(
 ) -> NativeAlignmentResult {
     let fps = safe_fps(project_fps);
     let raw = raw_duration_us.max(0);
-    audio_material.insert("duration".into(), int(raw));
+    audio_material.insert("duration", int(raw));
 
     let requested_trim_us = if settings.enabled && settings.leading_trim_frames > 0.0 {
         frames_to_us(settings.leading_trim_frames, Some(fps))
@@ -88,14 +89,14 @@ pub fn apply_native_audio_alignment(
     let target_duration_us = compute_target_duration_us(source_duration_us, speed, fps);
 
     audio_segment.insert(
-        "source_timerange".into(),
+        "source_timerange",
         json!({"start": source_start_us, "duration": source_duration_us}),
     );
     audio_segment.insert(
-        "target_timerange".into(),
+        "target_timerange",
         json!({"start": caption_start_us, "duration": target_duration_us}),
     );
-    audio_segment.insert("speed".into(), float(speed));
+    audio_segment.insert("speed", float(speed));
 
     let mut fade_in_us = 0;
     if settings.enabled && settings.fade_in_ms > 0.0 {
@@ -112,12 +113,12 @@ pub fn apply_native_audio_alignment(
             let mut refs: Vec<Value> = audio_segment
                 .get("extra_material_refs")
                 .and_then(Value::as_array)
-                .cloned()
+                .map(|a| a.to_vec())
                 .unwrap_or_default();
             if !refs.iter().any(|r| r.as_str() == Some(&fade_id)) {
-                refs.push(Value::String(fade_id));
+                refs.push(Value::from(fade_id));
             }
-            audio_segment.insert("extra_material_refs".into(), Value::Array(refs));
+            audio_segment.insert("extra_material_refs", Value::from(refs));
         }
     }
 

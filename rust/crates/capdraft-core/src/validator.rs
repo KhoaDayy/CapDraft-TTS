@@ -1,19 +1,19 @@
 //! Integrity checks on a patched draft before it is committed
 //! (port of `core/capcut_project/validator.py`).
 
+use crate::json::Value;
 use crate::paths::path_name;
 use crate::pyval::{
     self as py, Key, PyNum, PyResult, get, get_or, in_str_keys, int_or0, is_dict, is_str, iter,
     iter_or_empty, key, num, or, repr, str_of, to_float, truthy,
 };
-use serde_json::{Value, json};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
-static EMPTY_DICT: LazyLock<Value> = LazyLock::new(|| json!({}));
-static EMPTY_LIST: Value = Value::Array(Vec::new());
+static EMPTY_DICT: LazyLock<Value> = LazyLock::new(Value::empty_object);
+static EMPTY_LIST: LazyLock<Value> = LazyLock::new(|| Value::Array(crate::json::Array::new()));
 static ONE: LazyLock<Value> = LazyLock::new(|| crate::pyjson::float(1.0));
 
 /// `"; "`-joined first five errors, as `ValidationError` words them.
@@ -85,7 +85,7 @@ pub fn validate(
             if in_str_keys(iid, &by_id)? {
                 duplicate_ids.push(str_of(iid));
             }
-            by_id.insert(str_of(iid), (bucket.clone(), it));
+            by_id.insert(str_of(iid), (bucket.to_string(), it));
         }
     }
 

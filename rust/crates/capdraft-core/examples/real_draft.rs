@@ -7,13 +7,17 @@
 //! ```
 
 use capdraft_core::draft_reader::{DraftReader, extract_captions};
+
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+use capdraft_core::json::{Object, Value};
+use capdraft_core::jv as json;
 use capdraft_core::models::CaptionRow;
 use capdraft_core::project_split::{
     caption_edges_from_draft, choose_cut_us, slice_draft, split_project,
 };
 use capdraft_core::pyjson::{dumps_compact, dumps_indent, float, int, loads};
 use capdraft_core::{ids, srt, validator};
-use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -27,10 +31,10 @@ fn main() -> Result<(), String> {
     };
     let out = PathBuf::from(out_dir);
     std::fs::create_dir_all(&out).map_err(|e| e.to_string())?;
-    let mut timings = Map::new();
+    let mut timings = Object::new();
     let mut time = |name: &str, start: Instant| {
         timings.insert(
-            name.into(),
+            name,
             float((start.elapsed().as_secs_f64() * 1e4).round() / 1e4),
         );
     };

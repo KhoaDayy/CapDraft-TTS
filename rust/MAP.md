@@ -2,7 +2,7 @@
 
 Goal: a standalone Rust desktop app (Windows x64) that does what the Python app does;
 the Python code stays as reference until cutover. Decisions: [DECISIONS.md](DECISIONS.md)
-(ADR-001 … ADR-012). Terms: [GLOSSARY.md](GLOSSARY.md).
+(ADR-001 … ADR-015). Terms: [GLOSSARY.md](GLOSSARY.md).
 
 How a unit is verified: [ADR-006](DECISIONS.md#adr-006-verify-against-recordings-of-the-python-original).
 
@@ -28,6 +28,7 @@ cargo test --manifest-path rust/Cargo.toml # replays rust/golden/*.jsonl
 | 2 | `validator.py` | `validator.rs` | done | 417/417 |
 | 2 | `draft_reader.py` (captions, info, templates, inspect, load) | `draft_reader.rs` | done | 1525/1525 + 12 load fixtures |
 | 2 | Python value semantics (ADR-011), ids/clock (ADR-012) | `pyval.rs`, `ids.rs` | done | via the units above |
+| 2 | JSON value type, parser, writer (ADR-013, ADR-014) | `json.rs` | done | all golden files are read by it; parallel = sequential tests |
 | 3 | `draft_patcher.py` | | open | |
 | 3 | `project_exporter.py` (backup, atomic write, rollback) | | open | |
 | 3 | `core/cache.py`, `core/config.py`, `core/logger.py` | | open | |
@@ -54,7 +55,21 @@ split halves, and the whole split project tree), then prints timings. The draft 
 repository.
 
 Last run (2026-11-20) on a real CapCut 191 project, 19.6 MB, 3,585 captions, 2 h 28 min, no
-TTS yet: all 8 outputs identical, re-serialized draft identical to the original file.
+TTS yet: all 8 outputs identical, re-serialized draft identical to the original file. Timings on
+the 4-core build container (one run each; more cores make the parallel steps faster):
+
+| Step | Python | Rust | Speed-up |
+|---|---:|---:|---:|
+| load (read + parse) | 0.148 s | 0.049 s | 3.0x |
+| dumps_compact | 0.106 s | 0.023 s | 4.7x |
+| extract_captions | 0.047 s | 0.009 s | 5.5x |
+| inspect_project | 0.015 s | 0.005 s | 3.0x |
+| validate | 0.104 s | 0.005 s | 19x |
+| slice part 1 / part 2 | 0.369 / 0.411 s | 0.002 / 0.005 s | 205x / 88x |
+| split_project (copy + slice + write both parts) | 1.608 s | 0.071 s | 22.5x |
+
+`cargo run --release --example bench_json -- <draft>` times parse, clone and dump alone
+(best of 7: parse 0.037 s, dump 0.010 s, clone O(1)).
 
 ## Known limits of the recordings
 

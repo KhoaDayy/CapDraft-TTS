@@ -4,19 +4,20 @@
 //! Handles flat drafts and nested combination drafts (`materials.drafts[].draft`).
 
 use crate::ids::{new_uuid_upper, now_unix};
+use crate::json::{Object, Value};
+use crate::jv as json;
 use crate::pyfmt::{py_strip, round_half_even};
 use crate::pyjson::{dumps_compact, dumps_indent, int, text_mode};
 use crate::pyval::{
     Key, NONE, PyResult, get, get_or, int_or0, is_dict, is_int, is_str, iter, iter_or_empty, key,
     or, str_of, to_float, to_int, truthy,
 };
-use serde_json::{Map, Value, json};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
-static EMPTY_DICT: LazyLock<Value> = LazyLock::new(|| json!({}));
-static EMPTY_LIST: Value = Value::Array(Vec::new());
+static EMPTY_DICT: LazyLock<Value> = LazyLock::new(Value::empty_object);
+static EMPTY_LIST: LazyLock<Value> = LazyLock::new(|| Value::Array(crate::json::Array::new()));
 
 const IGNORE_NAMES: [&str; 6] = [
     "backups",
@@ -69,7 +70,7 @@ pub fn choose_cut_us(duration_us: i64, caption_edges_us: &[i64]) -> PyResult<i64
     Ok(best)
 }
 
-fn as_obj(v: &mut Value) -> Option<&mut Map<String, Value>> {
+fn as_obj(v: &mut Value) -> Option<&mut Object> {
     v.as_object_mut()
 }
 
@@ -80,18 +81,18 @@ fn seg_range(seg: &Value) -> PyResult<(i64, i64)> {
     Ok((start, start + dur))
 }
 
-fn set_target(seg: &mut Map<String, Value>, start: i64, duration: i64) {
+fn set_target(seg: &mut Object, start: i64, duration: i64) {
     if !seg.get("target_timerange").is_some_and(Value::is_object) {
-        seg.insert("target_timerange".into(), json!({}));
+        seg.insert("target_timerange", json!({}));
     }
     if let Some(tr) = seg.get_mut("target_timerange").and_then(as_obj) {
-        tr.insert("start".into(), int(start));
-        tr.insert("duration".into(), int(duration.max(0)));
+        tr.insert("start", int(start));
+        tr.insert("duration", int(duration.max(0)));
     }
 }
 
 /// `float(seg.get("speed") or 1.0)`, falling back to 1.0 on bad values.
-fn clip_speed(seg: &Map<String, Value>) -> f64 {
+fn clip_speed(seg: &Object) -> f64 {
     let v = seg.get("speed").unwrap_or(&NONE);
     let sp = if truthy(v) {
         to_float(v).unwrap_or(1.0)
@@ -101,7 +102,7 @@ fn clip_speed(seg: &Map<String, Value>) -> f64 {
     if sp > 0.0 { sp } else { 1.0 }
 }
 
-fn trim_source_head(seg: &mut Map<String, Value>, trim_target_us: i64) -> PyResult<()> {
+fn trim_source_head(seg: &mut Object, trim_target_us: i64) -> PyResult<()> {
     if trim_target_us <= 0 {
         return Ok(());
     }
@@ -111,17 +112,13 @@ fn trim_source_head(seg: &mut Map<String, Value>, trim_target_us: i64) -> PyResu
     };
     let src_trim = round_half_even(trim_target_us as f64 * speed);
     let start = int_or0(src.get("start").unwrap_or(&NONE))? + src_trim;
-    src.insert("start".into(), int(start));
+    src.insert("start", int(start));
     let dur = (int_or0(src.get("duration").unwrap_or(&NONE))? - src_trim).max(0);
-    src.insert("duration".into(), int(dur));
+    src.insert("duration", int(dur));
     Ok(())
 }
 
-fn trim_source_tail(
-    seg: &mut Map<String, Value>,
-    new_target_dur: i64,
-    old_target_dur: i64,
-) -> PyResult<()> {
+fn trim_source_tail(seg: &mut Object, new_target_dur: i64, old_target_dur: i64) -> PyResult<()> {
     if new_target_dur >= old_target_dur || old_target_dur <= 0 {
         return Ok(());
     }
@@ -131,14 +128,11 @@ fn trim_source_tail(
     };
     let alt = round_half_even(new_target_dur as f64 * speed).max(0);
     if alt > 0 {
-        src.insert("duration".into(), int(alt));
+        src.insert("duration", int(alt));
     } else {
         let ratio = new_target_dur as f64 / old_target_dur as f64;
         let old = int_or0(src.get("duration").unwrap_or(&NONE))?;
-        src.insert(
-            "duration".into(),
-            int(round_half_even(old as f64 * ratio).max(0)),
-        );
+        src.insert("duration", int(round_half_even(old as f64 * ratio).max(0)));
     }
     Ok(())
 }
@@ -206,7 +200,7 @@ fn filter_tracks(tracks: &Value, cut_us: i64, part: i64) -> PyResult<(Vec<Value>
             seg_count += 1;
         }
         if let Some(o) = t.as_object_mut() {
-            o.insert("segments".into(), Value::Array(segs_out));
+            o.insert("segments", Value::from(segs_out));
         }
         kept.push(t);
     }
@@ -233,11 +227,8 @@ fn collect_refs(tracks: &[Value]) -> PyResult<HashSet<String>> {
     Ok(ids)
 }
 
-fn prune_materials(
-    materials: &Map<String, Value>,
-    keep_ids: &HashSet<String>,
-) -> Map<String, Value> {
-    let mut out = Map::new();
+fn prune_materials(materials: &Object, keep_ids: &HashSet<String>) -> Object {
+    let mut out = Object::new();
     for (bucket, items) in materials {
         let Value::Array(items) = items else {
             out.insert(bucket.clone(), items.clone());
@@ -256,14 +247,14 @@ fn prune_materials(
 }
 
 /// Shrink a full-span video/audio material to the new timeline length.
-fn material_duration_us(item: &mut Map<String, Value>, new_duration: i64) {
+fn material_duration_us(item: &mut Object, new_duration: i64) {
     let Some(d) = item.get("duration").filter(|d| !d.is_null()) else {
         return;
     };
     let Ok(old) = int_or0(d) else { return };
     if old > 0 {
         item.insert(
-            "duration".into(),
+            "duration",
             int(if old >= new_duration {
                 old.min(new_duration)
             } else {
@@ -304,7 +295,7 @@ pub fn slice_draft(
     let o = out
         .as_object_mut()
         .ok_or_else(|| crate::pyval::no_attr(draft, "get"))?;
-    o.insert("tracks".into(), Value::Array(tracks));
+    o.insert("tracks", Value::from(tracks));
 
     let new_dur = if part == 1 {
         cut_us
@@ -327,7 +318,7 @@ pub fn slice_draft(
                         slice_draft(&item["draft"], cut_us, part, name_suffix, None, false)?;
                     let mut item = item.clone();
                     if let Some(io) = item.as_object_mut() {
-                        io.insert("draft".into(), nd);
+                        io.insert("draft", nd);
                     }
                     seg_count += nseg;
                     new_list.push(item);
@@ -339,7 +330,7 @@ pub fn slice_draft(
                     new_list.push(item.clone());
                 }
             }
-            mats.insert("drafts".into(), Value::Array(new_list));
+            mats.insert("drafts", Value::from(new_list));
         }
         let mut pruned = prune_materials(mats, &keep_ids);
         for bucket in ["videos", "audios"] {
@@ -389,14 +380,14 @@ pub fn slice_draft(
                         continue;
                     }
                     if !seg.get("source_timerange").is_some_and(Value::is_object) {
-                        seg.insert("source_timerange".into(), json!({}));
+                        seg.insert("source_timerange", json!({}));
                     }
                     let tgt = or(seg.get("target_timerange").unwrap_or(&NONE), &EMPTY_DICT).clone();
                     let d = get(&tgt, "duration")?;
                     let tdur = if truthy(d) { to_int(d)? } else { new_dur };
                     if let Some(src) = seg.get_mut("source_timerange").and_then(as_obj) {
-                        src.insert("start".into(), int(0));
-                        src.insert("duration".into(), int(tdur));
+                        src.insert("start", int(0));
+                        src.insert("duration", int(tdur));
                     }
                     if mats_is_dict {
                         video_updates.push((mid, tdur));
@@ -415,19 +406,19 @@ pub fn slice_draft(
                         String::new()
                     };
                     if id == mid {
-                        it.insert("duration".into(), int(tdur));
+                        it.insert("duration", int(tdur));
                     }
                 }
             }
         }
     }
 
-    o.insert("duration".into(), int(new_dur));
+    o.insert("duration", int(new_dur));
     if rename_content {
         let id = new_content_id
             .filter(|s| !s.is_empty())
             .map_or_else(new_uuid_upper, str::to_owned);
-        o.insert("id".into(), Value::String(id));
+        o.insert("id", Value::from(id));
         let name = o.get("name").unwrap_or(&NONE);
         let base_name = py_strip(&if truthy(name) {
             str_of(name)
@@ -441,7 +432,7 @@ pub fn slice_draft(
             } else {
                 base_name + name_suffix
             };
-            o.insert("name".into(), Value::String(new_name));
+            o.insert("name", Value::from(new_name));
         }
     }
     Ok((out, seg_count))
@@ -557,25 +548,26 @@ fn copy_project_tree(src: &Path, dest: &Path) -> PyResult<()> {
     copy_tree(src, dest).map_err(|e| io_err(&e, src))
 }
 
+/// `shutil.copytree` with the split's ignore list; files are copied in parallel.
 fn copy_tree(src: &Path, dest: &Path) -> std::io::Result<()> {
+    use rayon::prelude::*;
     std::fs::create_dir_all(dest)?;
     let mut entries: Vec<_> = std::fs::read_dir(src)?.collect::<Result<_, _>>()?;
     entries.sort_by_key(std::fs::DirEntry::file_name);
-    for entry in entries {
-        let name = entry.file_name();
-        let n = name.to_string_lossy();
-        if IGNORE_NAMES.contains(&n.as_ref()) || n.ends_with(".tmp") || n.ends_with(".precommit") {
-            continue;
-        }
+    entries.retain(|e| {
+        let n = e.file_name();
+        let n = n.to_string_lossy();
+        !(IGNORE_NAMES.contains(&n.as_ref()) || n.ends_with(".tmp") || n.ends_with(".precommit"))
+    });
+    entries.par_iter().try_for_each(|entry| {
         let from = entry.path();
-        let to = dest.join(&name);
+        let to = dest.join(entry.file_name());
         if from.is_dir() {
-            copy_tree(&from, &to)?;
+            copy_tree(&from, &to)
         } else {
-            copy_file(&from, &to)?;
+            copy_file(&from, &to)
         }
-    }
-    Ok(())
+    })
 }
 
 /// `shutil.copy2`: contents plus modification time.
@@ -595,7 +587,7 @@ fn rewrite_obj(obj: &Value, old: &str, new: &str) -> Value {
             m.iter()
                 .map(|(k, v)| {
                     let nv = if v.as_str() == Some(old) {
-                        Value::String(new.into())
+                        Value::from(new)
                     } else {
                         rewrite_obj(v, old, new)
                     };
@@ -604,7 +596,7 @@ fn rewrite_obj(obj: &Value, old: &str, new: &str) -> Value {
                 .collect(),
         ),
         Value::Array(a) => Value::Array(a.iter().map(|x| rewrite_obj(x, old, new)).collect()),
-        Value::String(s) if s == old => Value::String(new.into()),
+        Value::String(s) if s == old => Value::from(new),
         other => other.clone(),
     }
 }
@@ -629,7 +621,7 @@ fn rewrite_timeline_index(project_dir: &Path, old_content_id: &str, new_content_
             .file_name()
             .is_some_and(|n| n.to_string_lossy().starts_with("project.json"));
         if is_project && let Some(o) = new_data.as_object_mut() {
-            o.insert("id".into(), Value::String(new_uuid_upper()));
+            o.insert("id", Value::from(new_uuid_upper()));
         }
         let _ = write_json(&path, &new_data);
     }
@@ -719,7 +711,7 @@ fn ensure_template_tmp(tl_dir: &Path, draft: &Value) -> PyResult<()> {
         "canvas_config": {
             "background": canvas["background"].clone(),
             "height": height,
-            "ratio": or(&canvas["ratio"], &Value::String("original".into())).clone(),
+            "ratio": or(&canvas["ratio"], &Value::from("original")).clone(),
             "width": width,
         },
         "color_space": get_or(draft, "color_space", &json!(-1))?.clone(),
@@ -742,7 +734,7 @@ fn ensure_template_tmp(tl_dir: &Path, draft: &Value) -> PyResult<()> {
         "relationships": [],
         "render_index_track_mode_on": truthy(&draft["render_index_track_mode_on"]),
         "retouch_cover": null,
-        "source": or(&draft["source"], &Value::String("default".into())).clone(),
+        "source": or(&draft["source"], &Value::from("default")).clone(),
         "static_cover_image_path": "",
         "time_marks": null,
         "tracks": [],
@@ -757,13 +749,14 @@ fn write_draft_targets(
     project_dir: &Path,
     draft: &mut Value,
     old_content_id: &str,
+    payload: Option<&str>,
 ) -> PyResult<PathBuf> {
     let content_id = {
         let v = &draft["id"];
         if truthy(v) { str_of(v) } else { String::new() }
     };
     if let Some(o) = draft.as_object_mut() {
-        o.insert("name".into(), Value::String(String::new()));
+        o.insert("name", Value::String(Default::default()));
     }
     let tl_dir = rename_timeline_folder(project_dir, old_content_id, &content_id)?;
     rewrite_timeline_index(project_dir, old_content_id, &content_id);
@@ -790,8 +783,20 @@ fn write_draft_targets(
         }
         ensure_template_tmp(tl, draft)?;
     }
+    // One serialization for the six identical files.
+    let owned;
+    let payload = match payload {
+        Some(p) => p,
+        None => {
+            owned = dumps_compact(draft);
+            &owned
+        }
+    };
     for path in payload_paths {
-        let _ = write_json(&path, draft);
+        if let Some(parent) = path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        let _ = std::fs::write(&path, payload);
     }
     Ok(project_dir.join("draft_content.json"))
 }
@@ -808,26 +813,20 @@ fn patch_meta(project_dir: &Path, content_draft: &Value, folder_name: &str) -> S
         let Some(m) = meta.as_object_mut() else {
             return Ok(());
         };
-        m.insert("draft_id".into(), Value::String(meta_id.clone()));
-        m.insert("draft_name".into(), Value::String(folder_name.into()));
+        m.insert("draft_id", Value::from(meta_id.clone()));
+        m.insert("draft_name", Value::from(folder_name));
         let resolved = resolve(project_dir);
-        m.insert(
-            "draft_fold_path".into(),
-            Value::String(norm_path(&resolved)),
-        );
+        m.insert("draft_fold_path", Value::from(norm_path(&resolved)));
         let root = resolved.parent().map(norm_path).unwrap_or_default();
-        m.insert("draft_root_path".into(), Value::String(root));
+        m.insert("draft_root_path", Value::from(root));
         let dur = int_or0(&content_draft["duration"])?;
-        m.insert("tm_duration".into(), int(dur));
+        m.insert("tm_duration", int(dur));
         if m.contains_key("duration") {
-            m.insert("duration".into(), int(dur));
+            m.insert("duration", int(dur));
         }
-        m.insert("draft_is_invisible".into(), Value::Bool(false));
+        m.insert("draft_is_invisible", Value::Bool(false));
         if !truthy(m.get("draft_cover").unwrap_or(&NONE)) {
-            m.insert(
-                "draft_cover".into(),
-                Value::String("draft_cover.jpg".into()),
-            );
+            m.insert("draft_cover", Value::from("draft_cover.jpg"));
         }
         write_json(&meta_path, &meta).map_err(|e| io_err(&e, &meta_path))
     };
@@ -865,9 +864,9 @@ fn purge_stale_root_meta(root_meta: &Path) -> usize {
     }
     if removed > 0 {
         let len = kept.len();
-        d.insert("all_draft_store".into(), Value::Array(kept));
+        d.insert("all_draft_store", Value::from(kept));
         if d.get("draft_ids").is_some_and(is_int) {
-            d.insert("draft_ids".into(), json!(len));
+            d.insert("draft_ids", json!(len));
         }
         if write_json(root_meta, &data).is_err() {
             return 0;
@@ -899,9 +898,9 @@ fn register_root_meta(
         return;
     };
     let store: Vec<Value> = match d.get("all_draft_store") {
-        Some(Value::Array(a)) => a.clone(),
+        Some(Value::Array(a)) => a.to_vec(),
         _ => {
-            d.insert("all_draft_store".into(), json!([]));
+            d.insert("all_draft_store", json!([]));
             vec![]
         }
     };
@@ -922,28 +921,25 @@ fn register_root_meta(
         .unwrap_or_else(|| json!({}));
     let now_us = (now_unix() * 1_000_000.0) as i64;
     if let Some(t) = template.as_object_mut() {
-        t.insert("draft_id".into(), json!(meta_id));
-        t.insert("draft_name".into(), json!(folder_name));
-        t.insert("draft_fold_path".into(), json!(fold));
-        t.insert("draft_root_path".into(), json!(root));
-        t.insert("tm_duration".into(), int(duration_us));
+        t.insert("draft_id", json!(meta_id));
+        t.insert("draft_name", json!(folder_name));
+        t.insert("draft_fold_path", json!(fold));
+        t.insert("draft_root_path", json!(root));
+        t.insert("tm_duration", int(duration_us));
         if t.contains_key("duration") {
-            t.insert("duration".into(), int(duration_us));
+            t.insert("duration", int(duration_us));
         }
         t.insert(
-            "draft_json_file".into(),
+            "draft_json_file",
             json!(capcut_join(&fold, "draft_content.json")),
         );
-        t.insert(
-            "draft_cover".into(),
-            json!(capcut_join(&fold, "draft_cover.jpg")),
-        );
-        t.insert("draft_is_invisible".into(), json!(false));
-        t.insert("streaming_edit_draft_ready".into(), json!(true));
-        t.insert("tm_draft_removed".into(), json!(0));
-        t.insert("tm_draft_modified".into(), int(now_us));
+        t.insert("draft_cover", json!(capcut_join(&fold, "draft_cover.jpg")));
+        t.insert("draft_is_invisible", json!(false));
+        t.insert("streaming_edit_draft_ready", json!(true));
+        t.insert("tm_draft_removed", json!(0));
+        t.insert("tm_draft_modified", int(now_us));
         if !truthy(t.get("tm_draft_create").unwrap_or(&NONE)) {
-            t.insert("tm_draft_create".into(), int(now_us));
+            t.insert("tm_draft_create", int(now_us));
         }
     }
 
@@ -967,7 +963,7 @@ fn register_root_meta(
         new_store.insert(0, template);
     }
     let count = new_store.len();
-    d.insert("all_draft_store".into(), Value::Array(new_store));
+    d.insert("all_draft_store", Value::from(new_store));
     let meta_v = json!(meta_id);
     match d.get_mut("draft_ids") {
         Some(Value::Array(ids)) => {
@@ -976,7 +972,7 @@ fn register_root_meta(
             }
         }
         _ => {
-            d.insert("draft_ids".into(), json!(count));
+            d.insert("draft_ids", json!(count));
         }
     }
     let _ = write_json(&root_meta, &data);
@@ -1044,28 +1040,42 @@ pub fn split_project(
         }
     }
 
+    // Both copies, then both slices, run in parallel; ids are drawn in the
+    // original's order (part 1, then part 2) before the parallel work.
     progress(0.05, "Copying part 1…");
-    copy_project_tree(&source_project_dir, &part1_dir)?;
     progress(0.30, "Copying part 2…");
-    copy_project_tree(&source_project_dir, &part2_dir)?;
+    let (c1, c2) = rayon::join(
+        || copy_project_tree(&source_project_dir, &part1_dir),
+        || copy_project_tree(&source_project_dir, &part2_dir),
+    );
+    c1?;
+    c2?;
 
     progress(0.50, "Slicing drafts (incl. nested)…");
     let id1 = new_uuid_upper();
-    let (mut d1, n1) = slice_draft(source_draft, cut_us, 1, "", Some(&id1), true)?;
-    set_name(&mut d1, &format!("{base}_part1"));
     let id2 = new_uuid_upper();
-    let (mut d2, n2) = slice_draft(source_draft, cut_us, 2, "", Some(&id2), true)?;
+    let (s1, s2) = rayon::join(
+        || slice_draft(source_draft, cut_us, 1, "", Some(&id1), true),
+        || slice_draft(source_draft, cut_us, 2, "", Some(&id2), true),
+    );
+    let (mut d1, n1) = s1?;
+    set_name(&mut d1, &format!("{base}_part1"));
+    let (mut d2, n2) = s2?;
     set_name(&mut d2, &format!("{base}_part2"));
+    // `_write_draft_targets` blanks the name before writing; serialize both now, in parallel.
+    set_name(&mut d1, "");
+    set_name(&mut d2, "");
+    let (payload1, payload2) = rayon::join(|| dumps_compact(&d1), || dumps_compact(&d2));
 
     progress(0.70, "Writing part 1…");
-    let p1_draft = write_draft_targets(&part1_dir, &mut d1, &old_content_id)?;
+    let p1_draft = write_draft_targets(&part1_dir, &mut d1, &old_content_id, Some(&payload1))?;
     let name1 = format!("{base}_part1");
     let meta1 = patch_meta(&part1_dir, &d1, &name1);
     let dur1 = to_int(&d1["duration"])?;
     register_root_meta(&part1_dir, &meta1, &name1, dur1, &source_project_dir);
 
     progress(0.88, "Writing part 2…");
-    let p2_draft = write_draft_targets(&part2_dir, &mut d2, &old_content_id)?;
+    let p2_draft = write_draft_targets(&part2_dir, &mut d2, &old_content_id, Some(&payload2))?;
     let name2 = format!("{base}_part2");
     let meta2 = patch_meta(&part2_dir, &d2, &name2);
     let dur2 = to_int(&d2["duration"])?;
@@ -1101,6 +1111,6 @@ pub fn split_project(
 
 fn set_name(d: &mut Value, name: &str) {
     if let Some(o) = d.as_object_mut() {
-        o.insert("name".into(), Value::String(name.into()));
+        o.insert("name", Value::from(name));
     }
 }

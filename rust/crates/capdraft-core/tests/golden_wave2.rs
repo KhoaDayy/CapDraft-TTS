@@ -11,13 +11,14 @@ use capdraft_core::alignment::{
     NativeAudioAlignmentSettings, apply_native_audio_alignment, frames_to_us, ms_to_us,
 };
 use capdraft_core::draft_reader::{DraftReader, ProjectInspectionResult};
+use capdraft_core::json::{self as cj, Object, Value};
+use capdraft_core::jv as json;
 use capdraft_core::models::{CapCutProjectInfo, CaptionRow};
 use capdraft_core::project_split::{
     caption_edges_from_draft, choose_cut_us, slice_draft, split_project,
 };
 use capdraft_core::pyjson::{dumps_compact, float, int};
 use capdraft_core::{ids, pyval, validator};
-use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -28,9 +29,7 @@ fn golden(name: &str) -> Vec<Value> {
         .join("../../golden")
         .join(format!("{name}.jsonl"));
     let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-    text.lines()
-        .map(|l| serde_json::from_str(l).unwrap())
-        .collect()
+    text.lines().map(|l| cj::parse(l).unwrap()).collect()
 }
 
 /// `{"ok": v}` / `{"err": e}` as recorded, compared through `json.dumps` bytes.
@@ -271,7 +270,7 @@ fn reader_matches_python() {
                     let mut rd = fresh();
                     let sel: Option<Vec<String>> = match &a[2] {
                         Value::Null => None,
-                        Value::Array(s) if !s.is_empty() && s != &vec![json!("x")] => {
+                        Value::Array(s) if !s.is_empty() && s.as_slice() != [json!("x")] => {
                             let caps = rd.get_captions()?;
                             let mut ids: Vec<String> = caps[..caps.len() / 2]
                                 .iter()
@@ -323,15 +322,15 @@ impl Fixture {
         Self { base, base_str }
     }
     fn norm(&self, v: &Value) -> Value {
-        serde_json::from_str(&dumps_compact(v).replace(&self.base_str, "<ROOT>")).unwrap()
+        cj::parse(&dumps_compact(v).replace(&self.base_str, "<ROOT>")).unwrap()
     }
     fn snapshot(&self) -> Value {
         let mut out = BTreeMap::new();
         walk(&self.base, &self.base, &mut out, &self.base_str);
         Value::Object(
             out.into_iter()
-                .map(|(k, v)| (k, Value::String(v)))
-                .collect::<Map<_, _>>(),
+                .map(|(k, v)| (k, Value::from(v)))
+                .collect::<Object>(),
         )
     }
 }
@@ -497,8 +496,7 @@ fn split_project_matches_python() {
         let fx = Fixture::new(&a[0]);
         let proj = fx.base.join("Proj");
         let draft: Value =
-            serde_json::from_str(a[0]["files"]["Proj/draft_content.json"].as_str().unwrap())
-                .unwrap();
+            cj::parse(a[0]["files"]["Proj/draft_content.json"].as_str().unwrap()).unwrap();
         let mut events = Vec::new();
         let got = det(|| {
             split_project(&proj, &draft, &proj.join("draft_content.json"), a[1].as_i64(), None, None, &mut |p, m| {

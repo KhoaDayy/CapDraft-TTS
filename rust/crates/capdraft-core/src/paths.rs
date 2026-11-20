@@ -1,7 +1,7 @@
 //! CapCut media path helpers (port of `core/capcut_project/paths.py`).
 
+use crate::json::Value;
 use regex::Regex;
-use serde_json::Value;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;

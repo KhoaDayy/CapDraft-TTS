@@ -4,22 +4,23 @@
 //! Python's loose reads are kept (ADR-011): each step fails where, and with
 //! the message, the original raises.
 
+use crate::json::{Object, Value};
+use crate::jv as json;
 use crate::models::{CapCutProjectInfo, CaptionRow};
 use crate::pyfmt::py_strip;
 use crate::pyval::{
     self as py, Key, NONE, PyResult, contains_str, get, int_or0, is_dict, is_str, iter,
     iter_or_empty, key, or, str_of, to_float, truthy,
 };
-use serde_json::{Map, Value, json};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
-static EMPTY_DICT: LazyLock<Value> = LazyLock::new(|| json!({}));
-static EMPTY_LIST: Value = Value::Array(Vec::new());
+static EMPTY_DICT: LazyLock<Value> = LazyLock::new(Value::empty_object);
+static EMPTY_LIST: LazyLock<Value> = LazyLock::new(|| Value::Array(crate::json::Array::new()));
 static BUILTIN_TEMPLATES: LazyLock<Value> = LazyLock::new(|| {
     // INFALLIBLE: embedded at compile time and checked by the replay tests.
-    serde_json::from_str(include_str!("builtin_tts_templates.json"))
+    crate::json::parse(include_str!("builtin_tts_templates.json"))
         .expect("valid builtin_tts_templates.json")
 });
 
@@ -122,7 +123,7 @@ pub fn parse_caption_text(material: &Value) -> PyResult<(String, bool)> {
                 return Ok((String::new(), true));
             }
             match crate::pyjson::loads(s) {
-                Err(_) => Ok((s.clone(), true)),
+                Err(_) => Ok((s.to_string(), true)),
                 Ok(content @ Value::Object(_)) => Ok((text_field(&content)?, true)),
                 Ok(content) => Ok((str_of(&content), true)),
             }
@@ -257,7 +258,7 @@ impl DraftReader {
                 "Untitled".into()
             }
         };
-        let project_id = str_of(or(get(d, "id")?, &Value::String(String::new())));
+        let project_id = str_of(or(get(d, "id")?, &Value::String(Default::default())));
         let version = int_or0(get(d, "version")?)?;
         let nv = get(d, "new_version")?;
         let new_version = if nv.is_null() { None } else { Some(str_of(nv)) };
@@ -417,7 +418,11 @@ impl DraftReader {
             if !is_str(get(t, "type")?, "subtitle") {
                 continue;
             }
-            let (_, ok) = parse_caption_text(t)?;
+            // `parse_caption_text(t)[1]`: false only for a content that is not None/dict/str.
+            let ok = matches!(
+                get(t, "content")?,
+                Value::Null | Value::Object(_) | Value::String(_)
+            );
             if !ok {
                 invalid_content += 1;
             }
@@ -548,12 +553,15 @@ pub fn extract_captions(draft: &Value) -> PyResult<Vec<CaptionRow>> {
     }
 
     let mut rows = Vec::new();
+    // Caption texts are parsed after the walk, on all cores (parsing a dict
+    // material's content cannot fail, so the order of errors is unchanged).
+    let mut pending: Vec<&Value> = Vec::new();
     let mut index = 0;
     for track in iter(tracks)?.iter() {
         if !is_str(get(track, "type")?, "text") {
             continue;
         }
-        let track_id = str_of(or(get(track, "id")?, &Value::String(String::new())));
+        let track_id = str_of(or(get(track, "id")?, &Value::String(Default::default())));
         for seg in iter_or_empty(get(track, "segments")?)?.iter() {
             let mat_id = get(seg, "material_id")?;
             let Some(material) = text_by_id.get(&key(mat_id)?).copied() else {
@@ -563,7 +571,7 @@ pub fn extract_captions(draft: &Value) -> PyResult<Vec<CaptionRow>> {
                 continue;
             }
             index += 1;
-            let (text, _ok) = parse_caption_text(material)?;
+            pending.push(material);
             let tr = or(get(seg, "target_timerange")?, &EMPTY_DICT);
             let start_us = int_or0(get(tr, "start")?)?;
             let duration_us = int_or0(get(tr, "duration")?)?;
@@ -577,13 +585,24 @@ pub fn extract_captions(draft: &Value) -> PyResult<Vec<CaptionRow>> {
             rows.push(CaptionRow {
                 index,
                 text_track_id: track_id.clone(),
-                text_segment_id: str_of(or(seg_id, &Value::String(String::new()))),
+                text_segment_id: str_of(or(seg_id, &Value::String(Default::default()))),
                 text_material_id: str_of(or(mat_own_id, mat_id)),
                 start_us,
                 duration_us,
-                text,
+                text: String::new(),
                 existing_tts_segment_ids: existing,
             });
+        }
+    }
+    {
+        use rayon::prelude::*;
+        let texts: Vec<String> = pending
+            .par_iter()
+            .with_min_len(64)
+            .map(|m| parse_caption_text(m).map(|(t, _)| t).unwrap_or_default())
+            .collect();
+        for (row, text) in rows.iter_mut().zip(texts) {
+            row.text = text;
         }
     }
     rows.sort_by_key(|r| (r.start_us, r.index));
@@ -639,7 +658,7 @@ pub fn find_tts_templates(draft: &Value) -> PyResult<Option<Value>> {
         return Ok(None);
     };
 
-    let mut extras = Map::new();
+    let mut extras = Object::new();
     for r in iter_or_empty(get(segment, "extra_material_refs")?)?.iter() {
         for (bucket, items) in py::items(materials)? {
             let Value::Array(items) = items else { continue };
@@ -648,7 +667,7 @@ pub fn find_tts_templates(draft: &Value) -> PyResult<Option<Value>> {
             }
         }
     }
-    let mut audio_track = Map::new();
+    let mut audio_track = Object::new();
     if let Some(Value::Object(t)) = track {
         for (k, v) in t {
             if k != "segments" {
@@ -659,7 +678,7 @@ pub fn find_tts_templates(draft: &Value) -> PyResult<Option<Value>> {
     Ok(Some(json!({
         "audio_material": mat.clone(),
         "audio_segment": segment.clone(),
-        "audio_track": Value::Object(audio_track),
-        "extras": Value::Object(extras),
+        "audio_track": audio_track,
+        "extras": extras,
     })))
 }

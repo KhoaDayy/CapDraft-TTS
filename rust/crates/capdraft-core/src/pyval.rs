@@ -4,8 +4,8 @@
 //! value is there, `for x in v or []`, `==` across `int`/`float`/`bool`. These
 //! helpers do the same and fail with the same `"<Type>: <message>"` text.
 
+use crate::json::{Number, Object, Value};
 use crate::pyfmt::{py_float_repr, py_strip};
-use serde_json::{Map, Number, Value};
 use std::borrow::Cow;
 use std::collections::HashSet;
 
@@ -13,7 +13,8 @@ use std::collections::HashSet;
 pub type PyResult<T> = Result<T, String>;
 
 pub static NONE: Value = Value::Null;
-static EMPTY_LIST: Value = Value::Array(Vec::new());
+static EMPTY_LIST: std::sync::LazyLock<Value> =
+    std::sync::LazyLock::new(|| Value::Array(crate::json::Array::new()));
 
 /// A number as Python sees it after `json.loads`.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -34,15 +35,14 @@ impl PyNum {
 
 #[must_use]
 pub fn number(n: &Number) -> PyNum {
-    let text = n.to_string();
-    if text.contains(['.', 'e', 'E']) {
-        PyNum::Float(text.parse().unwrap_or(f64::NAN))
-    } else {
-        PyNum::Int(text.parse().unwrap_or(if text.starts_with('-') {
+    match n {
+        Number::Int(i) => PyNum::Int(i128::from(*i)),
+        Number::BigInt(t) => PyNum::Int(t.parse().unwrap_or(if t.starts_with('-') {
             i128::MIN
         } else {
             i128::MAX
-        }))
+        })),
+        Number::Float(f) => PyNum::Float(*f),
     }
 }
 
@@ -118,7 +118,7 @@ pub fn get_or<'a>(obj: &'a Value, key: &str, default: &'a Value) -> PyResult<&'a
 ///
 /// # Errors
 /// `AttributeError` when `obj` is not a dict.
-pub fn items(obj: &Value) -> PyResult<&Map<String, Value>> {
+pub fn items(obj: &Value) -> PyResult<&Object> {
     match obj {
         Value::Object(m) => Ok(m),
         other => Err(no_attr(other, "items")),
@@ -144,7 +144,9 @@ pub fn iter(v: &Value) -> PyResult<Cow<'_, [Value]>> {
             m.keys().map(|k| Value::String(k.clone())).collect(),
         )),
         Value::String(s) => Ok(Cow::Owned(
-            s.chars().map(|c| Value::String(c.to_string())).collect(),
+            s.chars()
+                .map(|c| Value::String(c.to_string().into()))
+                .collect(),
         )),
         other => Err(format!(
             "TypeError: '{}' object is not iterable",
@@ -190,7 +192,7 @@ pub fn index0(v: &Value) -> PyResult<Value> {
         Value::String(s) => s
             .chars()
             .next()
-            .map(|c| Value::String(c.to_string()))
+            .map(|c| Value::String(c.to_string().into()))
             .ok_or_else(|| "IndexError: string index out of range".to_owned()),
         Value::Object(_) => Err("KeyError: 0".to_owned()),
         other => Err(format!(
@@ -263,7 +265,7 @@ pub enum Key {
 pub fn key(v: &Value) -> PyResult<Key> {
     match v {
         Value::Null => Ok(Key::None),
-        Value::String(s) => Ok(Key::Str(s.clone())),
+        Value::String(s) => Ok(Key::Str(s.to_string())),
         Value::Array(_) | Value::Object(_) => {
             Err(format!("TypeError: unhashable type: '{}'", type_name(v)))
         }
@@ -395,12 +397,10 @@ pub fn float_str(f: f64) -> String {
 }
 
 fn num_str(n: &Number) -> String {
-    match number(n) {
-        PyNum::Int(_) => {
-            let t = n.to_string();
-            if t == "-0" { "0".into() } else { t }
-        }
-        PyNum::Float(f) => float_str(f),
+    match n {
+        Number::Int(i) => i.to_string(),
+        Number::BigInt(t) => t.to_string(),
+        Number::Float(f) => float_str(*f),
     }
 }
 
@@ -408,7 +408,7 @@ fn num_str(n: &Number) -> String {
 #[must_use]
 pub fn str_of(v: &Value) -> String {
     match v {
-        Value::String(s) => s.clone(),
+        Value::String(s) => s.to_string(),
         other => repr(other),
     }
 }
@@ -496,7 +496,7 @@ pub fn is_int(v: &Value) -> bool {
 #[expect(clippy::unwrap_used, reason = "tests")]
 mod tests {
     use super::*;
-    use serde_json::json;
+    use crate::jv as json;
 
     #[test]
     fn int_matches_python() {

@@ -9,7 +9,13 @@ license = "Apache-2.0"
 rust-version = "1.85"
 
 [workspace.dependencies]
-serde_json = { version = "1", features = ["preserve_order", "arbitrary_precision"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+serde = "1"
+compact_str = "0.9"
+ryu = "1"
+itoa = "1"
+memchr = "2"
+rayon = "1"
 regex = "1"
 uuid = { version = "1", features = ["v4"] }
 

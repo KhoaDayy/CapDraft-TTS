@@ -7,9 +7,10 @@
     reason = "test harness: a malformed golden file should fail loudly"
 )]
 
+use capdraft_core::json::{self as cj, Value};
+use capdraft_core::jv as json;
 use capdraft_core::models::{self, CaptionRow, ToneModifyMode};
 use capdraft_core::{i18n, paths, preferences, pyfmt, pyjson, srt};
-use serde_json::{Value, json};
 use std::path::PathBuf;
 
 fn golden(name: &str) -> Vec<Value> {
@@ -17,17 +18,15 @@ fn golden(name: &str) -> Vec<Value> {
         .join("../../golden")
         .join(format!("{name}.jsonl"));
     let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-    text.lines()
-        .map(|l| serde_json::from_str(l).unwrap())
-        .collect()
+    text.lines().map(|l| cj::parse(l).unwrap()).collect()
 }
 
 /// Python truthiness + `str()` for the loosely typed `normalize_*` inputs.
 fn py_str_or_empty(v: &Value) -> String {
     match v {
         Value::Null | Value::Bool(false) => String::new(),
-        Value::String(s) => s.clone(),
-        Value::Number(n) if n.as_f64() == Some(0.0) => String::new(),
+        Value::String(s) => s.to_string(),
+        n @ Value::Number(_) if n.as_f64() == Some(0.0) => String::new(),
         other => other.to_string(),
     }
 }
@@ -99,7 +98,11 @@ fn run(case: &Value) -> Result<Value, String> {
             let values: Vec<(String, String)> = a
                 .get(2)
                 .and_then(Value::as_object)
-                .map(|m| m.iter().map(|(k, v)| (k.clone(), v.to_string())).collect())
+                .map(|m| {
+                    m.iter()
+                        .map(|(k, v)| (k.to_string(), v.to_string()))
+                        .collect()
+                })
                 .unwrap_or_default();
             let refs: Vec<(&str, &str)> = values
                 .iter()
@@ -124,7 +127,7 @@ fn run(case: &Value) -> Result<Value, String> {
 /// Numbers compare by value so `1.0` (f64) equals a recorded `1.0`.
 fn same(a: &Value, b: &Value) -> bool {
     match (a, b) {
-        (Value::Number(x), Value::Number(y)) => x.as_f64() == y.as_f64(),
+        (Value::Number(_), Value::Number(_)) => a.as_f64() == b.as_f64(),
         _ => a == b,
     }
 }
@@ -187,7 +190,7 @@ fn isspace_matches_python() {
         .as_array()
         .unwrap()
         .iter()
-        .map(|v| v.as_u64().unwrap() as u32)
+        .map(|v| v.as_i64().unwrap() as u32)
         .collect();
     let got: Vec<u32> = (0..0x11_0000u32)
         .filter_map(char::from_u32)

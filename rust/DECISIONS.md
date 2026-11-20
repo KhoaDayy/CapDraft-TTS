@@ -86,3 +86,33 @@ Status: accepted (2026-11-20)
 Decision: `capdraft_core::ids` makes UUIDs (`uuid4().upper()`) and the clock overridable per
 thread. Recorders patch `uuid.uuid4` to `UUID(int=1, 2, …)` and `time.time` to a constant; the
 replay tests set the same sequence, so new ids and whole split projects compare byte for byte.
+
+## ADR-013: Own JSON value type instead of `serde_json::Value`
+Status: accepted (2026-11-20)
+Context: The user needs the Rust build to be clearly faster than Python on large projects, not on
+par. On a real 19.6 MB draft, building a `serde_json::Value` (with `preserve_order` and
+`arbitrary_precision`) took 0.12 to 0.14 s whatever the parser, slower than Python's `json`.
+`sonic-rs` parses it in 0.015 s but loses `-0.0`'s sign, turns big ints into floats, keeps
+duplicate keys and reorders keys on insert, which breaks ADR-002.
+Decision: `capdraft_core::json` is the draft type: `Arc` copy-on-write arrays and objects
+(clone O(1), only touched paths are copied), inline strings up to 24 bytes, ordered objects with
+`dict` semantics (insert replaces in place, duplicate keys keep first position and last value),
+Python numbers (`int` of any size, `float` with `-0.0` and infinity). A hand-written parser
+(SWAR string scanning, shared scratch stacks) and writer (`itoa`/`ryu`, run-length escaping).
+Consequences: `serde_json` stays only for `jv!` literals. `pyjson` and `pyval` wrap the new type.
+
+## ADR-014: Use every core
+Status: accepted (2026-11-20)
+Decision: Large arrays (≥ 64 elements spanning ≥ 256 KB, the bulk of a CapCut draft) are split by
+a bracket-matching scan and parsed on all cores; large arrays are also written in parallel chunks.
+Caption texts are parsed in parallel. A split copies both parts, slices both halves and serializes
+both drafts in parallel, and serializes each draft once for its six identical files. Results are
+identical to the sequential path: `json::parse_sequential` exists for the tests that check it, and
+a malformed large array falls back to the sequential parser so errors are reported the same way.
+The app binary should use `mimalloc` as its global allocator.
+
+## ADR-015: Speed is part of done
+Status: accepted (2026-11-20)
+Decision: Each wave runs `rust/tools/check_real_draft.py` on a large real project and reports
+Python and Rust times per step. A unit is done only when its outputs are identical and it is
+clearly faster than the original; a slowdown blocks the wave.
