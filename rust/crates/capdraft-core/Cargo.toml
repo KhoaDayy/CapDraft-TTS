@@ -1,0 +1,15 @@
+[package]
+name = "capdraft-core"
+description = "CapDraft TTS core: CapCut draft reading, patching and TTS pipeline (Rust port)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde_json.workspace = true
+regex.workspace = true
+uuid.workspace = true
+
+[lints]
+workspace = true
