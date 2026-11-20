@@ -52,14 +52,28 @@ pub trait Transport: Send + Sync {
 }
 
 /// The real network, through `ureq`.
+/// Retries of an HTTP call that failed below HTTP (connection, TLS, timeout); see ADR-023.
+pub const TRANSPORT_RETRIES: u32 = 2;
+
+/// How many times the request timeout a response body may take (see `UreqTransport::agent`).
+pub const BODY_TIMEOUT_FACTOR: u32 = 10;
+
 #[derive(Debug, Clone, Default)]
 pub struct UreqTransport;
 
 impl UreqTransport {
+    /// `requests`' `timeout=t` bounds the connect and every socket read, not the whole
+    /// request: a slow but flowing download never times out. ureq has no per-read timer, so
+    /// each phase gets `t` (connect, send, wait for the response head) and the body gets
+    /// `BODY_TIMEOUT_FACTOR * t` as a guard against a stalled transfer.
     fn agent(timeout: Duration) -> ureq::Agent {
         ureq::Agent::config_builder()
             .http_status_as_error(false)
-            .timeout_global(Some(timeout))
+            .timeout_connect(Some(timeout))
+            .timeout_send_request(Some(timeout))
+            .timeout_send_body(Some(timeout))
+            .timeout_recv_response(Some(timeout))
+            .timeout_recv_body(Some(timeout * BODY_TIMEOUT_FACTOR))
             .build()
             .into()
     }
@@ -515,19 +529,47 @@ impl CapCutTts {
         if job.is_cancelled() {
             return Err(CANCELLED.into());
         }
+        let headers = built.string_headers();
         let resp = self
-            .transport
-            .post(
-                &built.url,
-                &built.string_headers(),
-                built.body.as_bytes(),
-                Duration::from_secs(60),
-            )
+            .with_transport_retry(&|| job.is_cancelled(), || {
+                self.transport.post(
+                    &built.url,
+                    &headers,
+                    built.body.as_bytes(),
+                    Duration::from_secs(60),
+                )
+            })
             .map_err(|e| format!("RequestException: {e}"))?;
         if job.is_cancelled() {
             return Err(CANCELLED.into());
         }
         Ok(resp)
+    }
+
+    /// Run one HTTP call, retrying connection, TLS and timeout errors (never HTTP statuses)
+    /// up to [`TRANSPORT_RETRIES`] times, 1 s then 2 s apart. The original gives up at the
+    /// first such error, which fails a whole 25-caption chunk on one dropped request (ADR-023).
+    fn with_transport_retry<T>(
+        &self,
+        cancelled: &dyn Fn() -> bool,
+        call: impl Fn() -> Result<T, String>,
+    ) -> Result<T, String> {
+        let mut attempt = 0;
+        loop {
+            match call() {
+                Err(e) if attempt < TRANSPORT_RETRIES && !cancelled() => {
+                    attempt += 1;
+                    crate::logger::log(
+                        crate::logger::Level::Warning,
+                        file!(),
+                        line!(),
+                        &format!("HTTP error, retry {attempt}/{TRANSPORT_RETRIES}: {e}"),
+                    );
+                    (self.sleep)(Duration::from_secs(u64::from(attempt)));
+                }
+                other => return other,
+            }
+        }
     }
 
     /// The chunk's device: `device.json` over the profile's defaults, with fresh ids.
@@ -835,7 +877,9 @@ impl CapCutTts {
         // The original downloads into projects/tts/temp, fsyncs that temp file, copies it
         // into the cache (without fsync) and deletes it. Writing the bytes straight into the
         // cache gives the same cache file with one write instead of three and no fsync.
-        let resp = self.transport.get(url, Duration::from_secs(30))?;
+        let resp = self.with_transport_retry(&|| false, || {
+            self.transport.get(url, Duration::from_secs(30))
+        })?;
         if resp.status >= 400 {
             let kind = if resp.status < 500 {
                 "Client"

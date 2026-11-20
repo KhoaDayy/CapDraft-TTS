@@ -535,3 +535,99 @@ fn upstream_protocol_changes() {
     );
     let _ = std::fs::remove_dir_all(&base);
 }
+
+/// Fails every other call below HTTP (like a dropped connection or a TLS alert), then
+/// answers through the fake server.
+struct Flaky {
+    inner: Arc<FakeCapCut>,
+    calls: std::sync::atomic::AtomicU32,
+}
+
+impl Flaky {
+    fn drop_this(&self) -> bool {
+        self.calls
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+            .is_multiple_of(2)
+    }
+}
+
+impl Transport for Flaky {
+    fn post(
+        &self,
+        url: &str,
+        headers: &[(String, String)],
+        body: &[u8],
+        t: Duration,
+    ) -> Result<HttpResponse, String> {
+        if self.drop_this() {
+            return Err("io: received fatal alert: InternalError".into());
+        }
+        self.inner.post(url, headers, body, t)
+    }
+    fn get(&self, url: &str, t: Duration) -> Result<HttpResponse, String> {
+        if self.drop_this() {
+            return Err("timeout: recv_body".into());
+        }
+        self.inner.get(url, t)
+    }
+}
+
+/// ADR-023: a call that fails below HTTP is retried, so one dropped request no longer fails
+/// the chunk (submit, poll) or the caption (download). HTTP error statuses are not retried.
+#[test]
+fn transport_errors_are_retried() {
+    let raw = std::env::temp_dir().join(format!("capdraft-w4-retry-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&raw);
+    std::fs::create_dir_all(&raw).unwrap();
+    let base = std::fs::canonicalize(&raw).unwrap();
+    let settings = TtsSettings {
+        chunk_size: 2,
+        parallel_chunks: 1,
+        poll_interval_sec: 1.0,
+        download_workers: 1,
+        default_voice: "BV074_streaming".into(),
+        default_resource_id: "7102355709945188865".into(),
+        default_rate: 1.0,
+        cache_dir: base.join("cache"),
+        projects_dir: base.join("projects"),
+        device_json_path: base.join("missing-device.json"),
+        ffprobe_path: "ffprobe".into(),
+        device_profile: capdraft_core::capcut_client::DeviceProfile::Legacy,
+    };
+    let fake = Arc::new(FakeCapCut::default());
+    let flaky = Arc::new(Flaky {
+        inner: fake.clone(),
+        calls: 0.into(),
+    });
+    let slept = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let s2 = slept.clone();
+    let tts = CapCutTts::new(settings, "", flaky.clone())
+        .unwrap()
+        .with_sleep(Arc::new(move |d: Duration| s2.lock().unwrap().push(d)));
+    let never: capdraft_core::tts::CancelCallback = Arc::new(|| false);
+    let items: Vec<(i64, String)> = vec![
+        (1, "một".into()),
+        (2, "hai".into()),
+        (3, "ba #HTTP500".into()),
+    ];
+    let res = tts.generate_tts_batch(&items, None, None, None, &never, &None, false);
+    assert_eq!(res.get(1).unwrap().status, "Downloaded");
+    assert_eq!(res.get(2).unwrap().status, "Downloaded");
+    // the HTTP 500 is the server's answer: not retried; the failed chunk leaves no result,
+    // as in the original (the service reports it as failed)
+    assert!(res.get(3).is_none());
+    let news = fake
+        .0
+        .lock()
+        .unwrap()
+        .log
+        .iter()
+        .filter(|r| {
+            r["url"]
+                .as_str()
+                .is_some_and(|u| u.contains("common_task/new"))
+        })
+        .count();
+    assert_eq!(news, 2, "one submit per chunk reached the server");
+    assert!(slept.lock().unwrap().contains(&Duration::from_secs(1)));
+}

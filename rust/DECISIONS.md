@@ -208,3 +208,28 @@ Consequences: Checked by hand under Xvfb on Linux (load a 320-caption project, v
 language pickers, filters, advanced options, settings, Generate of 240 captions against the
 fake CapCut with progress, per-row status and reload). Windows itself is checked by the first
 release build and the user's first run.
+
+## ADR-022: HTTP timeouts follow `requests`' meaning, not a total deadline
+Status: accepted (2026-11-20)
+Context: The first live run (Windows, 3,585 captions) failed 2 captions with `timeout: global`.
+`UreqTransport` gave each request a 30 s (download) or 60 s (API) *total* deadline, while the
+original's `requests.get(url, stream=True, timeout=30)` bounds the connect and each socket read:
+a slow but flowing CDN download never times out there.
+Decision: Connect, request send and the wait for the response head each get the timeout; the
+body gets `BODY_TIMEOUT_FACTOR` (10) times it, as ureq has no per-read timer and a stalled
+transfer must still end. `tests/transport.rs` checks both against a local slow server.
+Consequences: A slow download now succeeds as in Python; a stalled body fails after 300 s
+instead of Python's 30 s of silence. Timeout error texts are ureq's, not `requests`'.
+
+## ADR-023: Retry HTTP calls that fail below HTTP
+Status: accepted (2026-11-20)
+Context: The same live run lost 179 of 3,585 captions: 4 downloads (3 timeouts, 1 TLS
+`InternalError` alert from the server) and 7 whole 25-caption chunks whose submit or poll failed
+the same way. The original gives up at the first such error and so loses a chunk per dropped
+request.
+Decision: Every TTS API call and audio download is retried up to `TRANSPORT_RETRIES` (2) times,
+1 s then 2 s apart, when the transport fails (connection, TLS, timeout). HTTP error statuses and
+API errors are answers and are not retried, so the golden replays are unchanged (the fake server
+never fails below HTTP). Each retry is written to the file log as a warning.
+Consequences: A transient network error costs a few seconds instead of up to 25 captions. A
+resubmitted `tts-new` whose first attempt did reach CapCut leaves an unused task there.
