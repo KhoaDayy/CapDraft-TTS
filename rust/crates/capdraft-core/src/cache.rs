@@ -7,6 +7,19 @@ use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// A `.part` name no other writer uses at the same time: two captions with the
+/// same text (same hash) may be stored by parallel chunks at once. The original
+/// shared one `<hash>.mp3.part`, so one of the two writers failed.
+fn part_path(dir: &Path, hash: &str) -> PathBuf {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static N: AtomicU64 = AtomicU64::new(0);
+    dir.join(format!(
+        "{hash}.mp3.{}-{}.part",
+        std::process::id(),
+        N.fetch_add(1, Ordering::Relaxed)
+    ))
+}
+
 #[derive(Debug, Clone)]
 pub struct TtsCache {
     pub cache_dir: PathBuf,
@@ -72,6 +85,33 @@ impl TtsCache {
         let _ = fs::write(self.meta_path(hash), s);
     }
 
+    /// Put downloaded audio into the cache (via `.part`, then rename) and record its duration.
+    ///
+    /// # Errors
+    /// `ValueError` for empty audio; write errors.
+    pub fn store_bytes(
+        &self,
+        data: &[u8],
+        text: &str,
+        voice: &str,
+        rate: f64,
+        resource_id: &str,
+        duration: f64,
+    ) -> PyResult<PathBuf> {
+        if data.is_empty() {
+            return Err("ValueError: Refuse to cache empty audio".into());
+        }
+        let hash = Self::generate_hash(text, voice, rate, resource_id);
+        let dest = self.cache_dir.join(format!("{hash}.mp3"));
+        let part = part_path(&self.cache_dir, &hash);
+        if let Err(e) = fs::write(&part, data).and_then(|()| fs::rename(&part, &dest)) {
+            let _ = fs::remove_file(&part);
+            return Err(io_err(&e, &dest));
+        }
+        self.write_duration(&hash, duration);
+        Ok(dest)
+    }
+
     /// Copy `src` into the cache (via `.part`, then rename) and record its duration.
     ///
     /// # Errors
@@ -93,7 +133,7 @@ impl TtsCache {
         }
         let hash = Self::generate_hash(text, voice, rate, resource_id);
         let dest = self.cache_dir.join(format!("{hash}.mp3"));
-        let part = self.cache_dir.join(format!("{hash}.mp3.part"));
+        let part = part_path(&self.cache_dir, &hash);
         let result = copy_file(src, &part).and_then(|()| {
             if fs::metadata(&part)?.len() == 0 {
                 return Err(std::io::Error::other("Cache copy produced empty file"));

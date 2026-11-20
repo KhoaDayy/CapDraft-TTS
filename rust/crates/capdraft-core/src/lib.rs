@@ -6,6 +6,7 @@
 pub mod alignment;
 pub mod cache;
 pub mod capcut_client;
+pub mod capcut_process;
 pub mod config;
 pub mod draft_patcher;
 pub mod draft_reader;
@@ -21,7 +22,9 @@ pub mod project_split;
 pub mod pyfmt;
 pub mod pyjson;
 pub mod pyval;
+pub mod service;
 pub mod srt;
 pub mod tts;
 pub mod validator;
+pub mod video_merge;
 pub mod voice_catalog;

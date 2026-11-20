@@ -164,3 +164,21 @@ SSML, polls with the `bind_id` the server returned (task, then data), accepts `s
 success, and downloads from `speech_url`, else `audio_url`, else `url`. `prosody rate` keeps the
 user's speed (upstream hard-codes `1.0`). `DeviceProfile::Legacy` is unchanged and remains what
 the golden files check.
+
+## ADR-020: Wave 5 differences from the original, all invisible in the files written
+Status: accepted (2026-11-20)
+Context: On the real 3,585-caption project the whole generate-and-attach pipeline was as slow
+in Rust as in Python when sequential: the time went into file I/O, not computation. Running it
+in parallel also showed that the Python app loses captions: duplicate caption texts in parallel
+chunks share one `cache/<hash>.mp3.part`, so one writer fails (8 to 10 captions per run).
+Decision:
+- Downloaded audio is written straight into the cache (`.part`, then rename) instead of a temp
+  file in `projects/tts/temp` that is fsynced, copied into the cache without fsync, and deleted:
+  the same cache file with one write and no fsync (the original's fsync protected only the temp).
+- Each cache write uses its own `.part` name, which fixes the duplicate-text race.
+- Audio copies into `textReading/` run on one thread: thousands of small files into one folder
+  are faster that way than from 8 threads contending on the folder.
+- The service does not download the voice catalog when it is created (the original blocked on
+  it); the app loads it in the background through `get_voice_catalog`.
+Consequences: Project folders, cache files and logs stay byte-identical to the Python run
+(`rust/tools/check_pipeline.py`); only temp files, fsyncs and timings differ.

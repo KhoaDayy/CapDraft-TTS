@@ -2,7 +2,7 @@
 
 Goal: a standalone Rust desktop app (Windows x64) that does what the Python app does;
 the Python code stays as reference until cutover. Decisions: [DECISIONS.md](DECISIONS.md)
-(ADR-001 … ADR-019). Terms: [GLOSSARY.md](GLOSSARY.md).
+(ADR-001 … ADR-020). Terms: [GLOSSARY.md](GLOSSARY.md).
 
 How a unit is verified: [ADR-006](DECISIONS.md#adr-006-verify-against-recordings-of-the-python-original).
 
@@ -11,6 +11,7 @@ python rust/tools/record_wave1.py          # re-record (from the repo root)
 python rust/tools/record_wave2.py
 python rust/tools/record_wave3.py
 python rust/tools/record_wave4.py
+python rust/tools/record_wave5.py
 cargo test --manifest-path rust/Cargo.toml # replays rust/golden/*.jsonl
 ```
 
@@ -43,7 +44,9 @@ cargo test --manifest-path rust/Cargo.toml # replays rust/golden/*.jsonl
 | 4 | Device profiles and protocol handling from upstream `K07VN/capcut-tts-api` (ADR-018, ADR-019) | `capcut_client.rs`, `tts.rs` | done | 2 tests |
 | 4 | Voice catalog download (ADR-016) | `voice_catalog.rs` | done | unit test |
 | 4 | STT, VOD upload (not used by the app) | | out of scope (ADR-017) | |
-| 5 | `tts_project_service.py`, `video_merge.py`, `capcut_process.py` | | open | |
+| 5 | `tts_project_service.py` (load, inspect, SRT, catalog, generate-and-attach) | `service.rs` | done | 19 runs: result, every log event, progress, callbacks, requests, whole project tree |
+| 5 | `video_merge.py` (stream copy, re-encode fallback) | `video_merge.rs` | done | 9 merges with the real ffmpeg through a logging wrapper |
+| 5 | `capcut_process.py` | `capcut_process.rs` | done | not replayed (depends on running processes) |
 | 6 | `ui/*` (PySide6) → Rust GUI | | open | Slint (ADR-008) |
 
 ## Out of scope
@@ -80,6 +83,11 @@ the 4-core build container (one run each; more cores make the parallel steps fas
 | patch: TTS for all 3,585 captions | 0.262 s | 0.044 s | 6.0x |
 | patch again, replacing that TTS | 0.311 s | 0.052 s | 6.0x |
 | validate the patched draft (32 MB) | 0.185 / 0.338 s | 0.024 s | 7.6x / 14x |
+
+Whole pipeline (`python rust/tools/check_pipeline.py <draft>`), all 3,585 captions against the
+instant fake CapCut, so the times are the tool's own work: project folders identical (10,195 files,
+230 MB); sequential 10.2 s Python, 3.7 s Rust (2.8x); default parallel settings 12.9 s Python
+with 10 captions lost to the cache race (ADR-020), 3.6 s Rust with none (3.6x).
 
 `cargo run --release --example bench_json -- <draft>` times parse, clone and dump alone
 (best of 7: parse 0.037 s, dump 0.010 s, clone O(1)).

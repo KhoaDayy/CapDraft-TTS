@@ -195,7 +195,6 @@ impl ProjectExporter {
         style: PathStyle,
         workers: usize,
     ) -> Vec<(String, Option<String>)> {
-        use rayon::prelude::*;
         let dir = match self.text_reading_dir(project_directory) {
             Ok(d) => d,
             Err(e) => {
@@ -216,15 +215,11 @@ impl ProjectExporter {
             Ok(rel) => (rel, None),
             Err(e) => (String::new(), Some(e)),
         };
-        // A missing placeholder draws a new id per file: keep that sequential so ids stay in order.
-        if workers <= 1
-            || items.len() <= 1
-            || (style == PathStyle::Placeholder && placeholder.is_none())
-        {
-            items.iter().map(one).collect()
-        } else {
-            items.par_iter().map(one).collect()
-        }
+        // Sequential on purpose: thousands of small files into one folder copy faster
+        // from one thread than from many (they contend on the folder), and a missing
+        // placeholder then draws its ids in order. `workers` is kept for the API.
+        let _ = workers;
+        items.iter().map(one).collect()
     }
 
     /// Copy every existing write target to `backups/<timestamp>/` with the

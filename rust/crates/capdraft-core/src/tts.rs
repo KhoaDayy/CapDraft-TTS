@@ -832,75 +832,41 @@ impl CapCutTts {
         duration: f64,
         idx: i64,
     ) -> Result<TtsItemResult, String> {
-        let dir = self.project_dir(&["tts", "temp"]);
-        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-        let temp = dir.join(format!("temp_{seg_task_id}.mp3"));
-        let part = dir.join(format!("temp_{seg_task_id}.mp3.part"));
-        let result = (|| {
-            self.download_file(url, &temp, &part)?;
-            if !std::fs::metadata(&temp).is_ok_and(|m| m.len() > 0) {
-                return Err(format!(
-                    "Downloaded audio empty or missing: {}",
-                    temp.display()
-                ));
-            }
-            let cached = self
-                .cache
-                .cache_audio(&temp, text, voice, rate, rid, duration)
-                .map_err(|e| exc_str(&e))?;
-            let path = if self.project_name.is_empty() {
-                cached
+        // The original downloads into projects/tts/temp, fsyncs that temp file, copies it
+        // into the cache (without fsync) and deletes it. Writing the bytes straight into the
+        // cache gives the same cache file with one write instead of three and no fsync.
+        let resp = self.transport.get(url, Duration::from_secs(30))?;
+        if resp.status >= 400 {
+            let kind = if resp.status < 500 {
+                "Client"
             } else {
-                self.copy_to_project_tts(&cached, &format!("tts_{idx:06}.mp3"))
-                    .map_err(|e| exc_str(&e))?
+                "Server"
             };
-            Ok(TtsItemResult {
-                audio_path: path.to_string_lossy().into_owned(),
-                duration: Some(duration),
-                status: "Downloaded",
-                error: None,
-            })
-        })();
-        for p in [&temp, &part] {
-            let _ = std::fs::remove_file(p);
+            return Err(format!(
+                "{} {kind} Error: {} for url: {url}",
+                resp.status, resp.reason
+            ));
         }
-        result
-    }
-
-    /// Into `part`, fsynced, then renamed; errors worded as `requests` words them.
-    fn download_file(&self, url: &str, dest: &Path, part: &Path) -> Result<(), String> {
-        let attempt = || -> Result<(), String> {
-            let resp = self.transport.get(url, Duration::from_secs(30))?;
-            if resp.status >= 400 {
-                let kind = if resp.status < 500 {
-                    "Client"
-                } else {
-                    "Server"
-                };
-                return Err(format!(
-                    "{} {kind} Error: {} for url: {url}",
-                    resp.status, resp.reason
-                ));
-            }
-            {
-                use std::io::Write;
-                let mut f = std::fs::File::create(part).map_err(|e| e.to_string())?;
-                f.write_all(&resp.body).map_err(|e| e.to_string())?;
-                f.sync_all().map_err(|e| e.to_string())?;
-            }
-            if resp.body.is_empty() {
-                return Err(format!("Empty download from {url}"));
-            }
-            std::fs::rename(part, dest).map_err(|e| e.to_string())
+        if resp.body.is_empty() {
+            return Err(format!("Empty download from {url}"));
+        }
+        let _ = seg_task_id;
+        let cached = self
+            .cache
+            .store_bytes(&resp.body, text, voice, rate, rid, duration)
+            .map_err(|e| exc_str(&e))?;
+        let path = if self.project_name.is_empty() {
+            cached
+        } else {
+            self.copy_to_project_tts(&cached, &format!("tts_{idx:06}.mp3"))
+                .map_err(|e| exc_str(&e))?
         };
-        let r = attempt();
-        if r.is_err() {
-            let _ = std::fs::remove_file(part);
-            if std::fs::metadata(dest).is_ok_and(|m| m.len() == 0) {
-                let _ = std::fs::remove_file(dest);
-            }
-        }
-        r
+        Ok(TtsItemResult {
+            audio_path: path.to_string_lossy().into_owned(),
+            duration: Some(duration),
+            status: "Downloaded",
+            error: None,
+        })
     }
 
     /// Load the device file once to check it (the original reads it per chunk).

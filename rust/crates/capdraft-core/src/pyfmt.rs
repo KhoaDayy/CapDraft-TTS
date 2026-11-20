@@ -84,6 +84,45 @@ pub fn py_float_repr(f: f64) -> String {
     out
 }
 
+/// Python `format(x, "g")`: 6 significant digits, trailing zeros dropped,
+/// scientific below 1e-4 or from 1e6 (`1e+06`).
+#[must_use]
+pub fn format_g(x: f64) -> String {
+    if x.is_nan() {
+        return "nan".into();
+    }
+    if x.is_infinite() {
+        return if x > 0.0 { "inf".into() } else { "-inf".into() };
+    }
+    if x == 0.0 {
+        return if x.is_sign_negative() {
+            "-0".into()
+        } else {
+            "0".into()
+        };
+    }
+    let sci = format!("{x:.5e}");
+    let (mant, exp) = sci.split_once('e').unwrap_or((&sci, "0"));
+    let exp: i32 = exp.parse().unwrap_or(0);
+    let strip = |s: &str| -> String {
+        if s.contains('.') {
+            s.trim_end_matches('0').trim_end_matches('.').to_owned()
+        } else {
+            s.to_owned()
+        }
+    };
+    if (-4..6).contains(&exp) {
+        strip(&format!("{x:.*}", (5 - exp) as usize))
+    } else {
+        format!(
+            "{}e{}{:02}",
+            strip(mant),
+            if exp < 0 { '-' } else { '+' },
+            exp.unsigned_abs()
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -105,6 +144,24 @@ mod tests {
         ];
         for (f, want) in cases {
             assert_eq!(py_float_repr(f), want, "{f}");
+        }
+    }
+
+    #[test]
+    fn format_g_matches_python() {
+        for (x, want) in [
+            (30.0, "30"),
+            (29.97, "29.97"),
+            (3.0, "3"),
+            (1.5, "1.5"),
+            (0.0001, "0.0001"),
+            (0.00001, "1e-05"),
+            (123456.0, "123456"),
+            (1234567.0, "1.23457e+06"),
+            (23.976, "23.976"),
+            (-2.5, "-2.5"),
+        ] {
+            assert_eq!(format_g(x), want, "{x}");
         }
     }
 

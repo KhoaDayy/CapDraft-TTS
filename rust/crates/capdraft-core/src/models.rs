@@ -228,3 +228,48 @@ impl CaptionTtsResult {
         self.status == "generated" || self.status == "cached"
     }
 }
+
+/// One log line of a generation run, as the UI receives it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GenerationLogEvent {
+    pub timestamp: chrono::NaiveDateTime,
+    /// `DEBUG`, `INFO`, `WARNING`, `ERROR`, `SUCCESS` or `CACHED`.
+    pub level: String,
+    pub message: String,
+    pub stage: Option<String>,
+    pub caption_index: Option<i64>,
+    pub progress: Option<f64>,
+}
+
+/// The outcome of `generate_and_attach`.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct GenerationResult {
+    pub success: bool,
+    pub project_path: PathBuf,
+    pub backup_path: Option<PathBuf>,
+    pub selected: i64,
+    pub generated: i64,
+    pub cached: i64,
+    pub skipped: i64,
+    pub failed: i64,
+    pub replaced: i64,
+    pub attached: i64,
+    pub audio_tracks_used: i64,
+    pub audio_tracks_created: i64,
+    pub processing_seconds: f64,
+    pub validation_passed: bool,
+    pub log_file: Option<PathBuf>,
+    pub manifest_path: Option<PathBuf>,
+    pub warnings: Vec<String>,
+    pub errors: Vec<String>,
+    pub items: Vec<CaptionTtsResult>,
+    /// `{"cancelled": true}` when the user cancelled.
+    pub cancelled: bool,
+}
+
+impl GenerationResult {
+    #[must_use]
+    pub fn completed_with_warnings(&self) -> bool {
+        self.success && (self.failed > 0 || !self.warnings.is_empty())
+    }
+}
