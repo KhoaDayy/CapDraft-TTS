@@ -73,3 +73,60 @@ jobs:
             release/CapDraft-TTS-v${{ steps.ver.outputs.version }}-windows-x64.zip.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Rust port (rust/), shipped as a beta next to the Python build (rust/DECISIONS.md ADR-010).
+  build-windows-rust:
+    needs: build-windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            V="${{ inputs.version }}"
+          else
+            V="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "tag=v$V" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        shell: pwsh
+        run: cargo build --release --locked -p capdraft-app --manifest-path rust/Cargo.toml
+
+      - name: Package zip + sha256
+        shell: pwsh
+        run: |
+          $Version = "${{ steps.ver.outputs.version }}"
+          $Stage = "release\CapDraft-TTS-rust"
+          New-Item -ItemType Directory -Force "$Stage\external\capcut-tts-api" | Out-Null
+          Copy-Item "rust\target\release\CapDraft-TTS.exe" $Stage
+          Copy-Item "external\capcut-tts-api\device.json" "$Stage\external\capcut-tts-api"
+          $Archive = "release\CapDraft-TTS-v$Version-rust-beta-windows-x64.zip"
+          Compress-Archive -Path "$Stage\*" -DestinationPath $Archive -CompressionLevel Optimal
+          $Hash = (Get-FileHash -Algorithm SHA256 $Archive).Hash.ToLowerInvariant()
+          "$Hash  $(Split-Path -Leaf $Archive)" | Set-Content -Encoding ascii "$Archive.sha256"
+          Write-Host "Built: $Archive"
+          Write-Host "SHA256: $Hash"
+
+      - name: Upload to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          files: |
+            release/CapDraft-TTS-v${{ steps.ver.outputs.version }}-rust-beta-windows-x64.zip
+            release/CapDraft-TTS-v${{ steps.ver.outputs.version }}-rust-beta-windows-x64.zip.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

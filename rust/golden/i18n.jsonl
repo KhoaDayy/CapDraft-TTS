@@ -1,0 +1,646 @@
+{"fn": "normalize_language", "args": [null], "ok": "vi"}
+{"fn": "normalize_language", "args": [""], "ok": "vi"}
+{"fn": "normalize_language", "args": ["vi"], "ok": "vi"}
+{"fn": "normalize_language", "args": ["en"], "ok": "en"}
+{"fn": "normalize_language", "args": ["EN"], "ok": "en"}
+{"fn": "normalize_language", "args": ["en_US"], "ok": "en"}
+{"fn": "normalize_language", "args": ["en-GB"], "ok": "en"}
+{"fn": "normalize_language", "args": ["zh-Hans"], "ok": "zh"}
+{"fn": "normalize_language", "args": ["ja_JP"], "ok": "ja"}
+{"fn": "normalize_language", "args": ["fr"], "ok": "vi"}
+{"fn": "normalize_language", "args": [" ja "], "ok": "ja"}
+{"fn": "normalize_language", "args": [0], "ok": "vi"}
+{"fn": "normalize_language", "args": ["VI-vn"], "ok": "vi"}
+{"fn": "normalize_theme_mode", "args": [null], "ok": "auto"}
+{"fn": "normalize_theme_mode", "args": [""], "ok": "auto"}
+{"fn": "normalize_theme_mode", "args": ["auto"], "ok": "auto"}
+{"fn": "normalize_theme_mode", "args": ["light"], "ok": "light"}
+{"fn": "normalize_theme_mode", "args": ["dark"], "ok": "dark"}
+{"fn": "normalize_theme_mode", "args": ["LIGHT"], "ok": "light"}
+{"fn": "normalize_theme_mode", "args": [" Dark "], "ok": "dark"}
+{"fn": "normalize_theme_mode", "args": ["system"], "ok": "auto"}
+{"fn": "normalize_theme_mode", "args": [1], "ok": "auto"}
+{"fn": "translate", "args": ["settings", "vi"], "ok": "Cài đặt"}
+{"fn": "translate", "args": ["settings_description", "vi"], "ok": "Tùy chỉnh giao diện, đường dẫn, giọng đọc và hiệu năng TTS."}
+{"fn": "translate", "args": ["appearance", "vi"], "ok": "Giao diện"}
+{"fn": "translate", "args": ["language", "vi"], "ok": "Ngôn ngữ"}
+{"fn": "translate", "args": ["theme", "vi"], "ok": "Chủ đề"}
+{"fn": "translate", "args": ["theme_auto", "vi"], "ok": "Theo Windows"}
+{"fn": "translate", "args": ["theme_light", "vi"], "ok": "Sáng"}
+{"fn": "translate", "args": ["theme_dark", "vi"], "ok": "Tối"}
+{"fn": "translate", "args": ["restart_language", "vi"], "ok": "Ngôn ngữ mới sẽ áp dụng sau khi mở lại ứng dụng."}
+{"fn": "translate", "args": ["save_settings", "vi"], "ok": "Lưu cài đặt"}
+{"fn": "translate", "args": ["cancel", "vi"], "ok": "Hủy"}
+{"fn": "translate", "args": ["paths", "vi"], "ok": "Đường dẫn"}
+{"fn": "translate", "args": ["voices", "vi"], "ok": "Giọng đọc"}
+{"fn": "translate", "args": ["performance", "vi"], "ok": "Hiệu năng"}
+{"fn": "translate", "args": ["choose", "vi"], "ok": "Chọn"}
+{"fn": "translate", "args": ["choose_folder", "vi"], "ok": "Chọn thư mục"}
+{"fn": "translate", "args": ["choose_file", "vi"], "ok": "Chọn tệp"}
+{"fn": "translate", "args": ["reload_list", "vi"], "ok": "Tải lại danh sách"}
+{"fn": "translate", "args": ["voice_catalog_url", "vi"], "ok": "URL danh mục giọng"}
+{"fn": "translate", "args": ["captions_per_batch", "vi"], "ok": "Caption mỗi lô"}
+{"fn": "translate", "args": ["parallel_batches", "vi"], "ok": "Số lô song song"}
+{"fn": "translate", "args": ["audio_workers", "vi"], "ok": "Luồng tải audio"}
+{"fn": "translate", "args": ["poll_interval", "vi"], "ok": "Chu kỳ kiểm tra"}
+{"fn": "translate", "args": ["backup_count", "vi"], "ok": "Số bản sao lưu"}
+{"fn": "translate", "args": ["seconds_suffix", "vi"], "ok": " giây"}
+{"fn": "translate", "args": ["window_title", "vi"], "ok": "CapDraft TTS — Tạo TTS cho project CapCut"}
+{"fn": "translate", "args": ["capcut_project", "vi"], "ok": "Project CapCut"}
+{"fn": "translate", "args": ["choose_project", "vi"], "ok": "Chọn project"}
+{"fn": "translate", "args": ["project_placeholder", "vi"], "ok": "Chọn thư mục project hoặc draft_content.json…"}
+{"fn": "translate", "args": ["reload_project", "vi"], "ok": "Tải lại project"}
+{"fn": "translate", "args": ["export_srt", "vi"], "ok": "Xuất SRT"}
+{"fn": "translate", "args": ["split_project", "vi"], "ok": "Tách 2 phần"}
+{"fn": "translate", "args": ["merge_videos", "vi"], "ok": "Ghép video"}
+{"fn": "translate", "args": ["no_project", "vi"], "ok": "Chưa chọn project"}
+{"fn": "translate", "args": ["voice_settings", "vi"], "ok": "Cài đặt giọng đọc"}
+{"fn": "translate", "args": ["all", "vi"], "ok": "Tất cả"}
+{"fn": "translate", "args": ["search_voice", "vi"], "ok": "Tìm giọng…"}
+{"fn": "translate", "args": ["language_label", "vi"], "ok": "Ngôn ngữ"}
+{"fn": "translate", "args": ["voice_label", "vi"], "ok": "Giọng đọc"}
+{"fn": "translate", "args": ["voice_speed", "vi"], "ok": "Tốc độ giọng đọc"}
+{"fn": "translate", "args": ["pitch", "vi"], "ok": "Cao độ"}
+{"fn": "translate", "args": ["existing_tts", "vi"], "ok": "TTS đã tồn tại"}
+{"fn": "translate", "args": ["replace_tts", "vi"], "ok": "Thay thế TTS cũ"}
+{"fn": "translate", "args": ["skip_existing_tts", "vi"], "ok": "Bỏ qua caption đã có TTS"}
+{"fn": "translate", "args": ["advanced_options", "vi"], "ok": "Tùy chọn nâng cao"}
+{"fn": "translate", "args": ["use_cache", "vi"], "ok": "Dùng cache TTS"}
+{"fn": "translate", "args": ["align_tts", "vi"], "ok": "Chống lệch đầu TTS (native CapCut)"}
+{"fn": "translate", "args": ["trim_start", "vi"], "ok": "Cắt đầu"}
+{"fn": "translate", "args": ["fade_in", "vi"], "ok": "Fade-in"}
+{"fn": "translate", "args": ["search_caption", "vi"], "ok": "Tìm trong nội dung caption…"}
+{"fn": "translate", "args": ["select_all", "vi"], "ok": "Chọn tất cả"}
+{"fn": "translate", "args": ["deselect_all", "vi"], "ok": "Bỏ chọn"}
+{"fn": "translate", "args": ["hide_empty", "vi"], "ok": "Ẩn dòng rỗng"}
+{"fn": "translate", "args": ["without_tts", "vi"], "ok": "Chưa có TTS"}
+{"fn": "translate", "args": ["only_errors", "vi"], "ok": "Chỉ lỗi"}
+{"fn": "translate", "args": ["selection", "vi"], "ok": "Đã chọn {selected}/{total} · Hiển thị {visible}"}
+{"fn": "translate", "args": ["table_start", "vi"], "ok": "Bắt đầu"}
+{"fn": "translate", "args": ["table_end", "vi"], "ok": "Kết thúc"}
+{"fn": "translate", "args": ["table_content", "vi"], "ok": "Nội dung"}
+{"fn": "translate", "args": ["table_has_tts", "vi"], "ok": "Đã có TTS"}
+{"fn": "translate", "args": ["table_status", "vi"], "ok": "Trạng thái"}
+{"fn": "translate", "args": ["table_duration", "vi"], "ok": "Thời lượng"}
+{"fn": "translate", "args": ["table_error", "vi"], "ok": "Lỗi"}
+{"fn": "translate", "args": ["ready", "vi"], "ok": "Sẵn sàng"}
+{"fn": "translate", "args": ["generating", "vi"], "ok": "Đang tạo…"}
+{"fn": "translate", "args": ["cancelling", "vi"], "ok": "Đang hủy…"}
+{"fn": "translate", "args": ["generate_attach", "vi"], "ok": "Tạo và gắn TTS"}
+{"fn": "translate", "args": ["app_settings", "vi"], "ok": "Cài đặt ứng dụng"}
+{"fn": "translate", "args": ["clear_log", "vi"], "ok": "Xóa nhật ký"}
+{"fn": "translate", "args": ["copy_log", "vi"], "ok": "Sao chép nhật ký"}
+{"fn": "translate", "args": ["save_log", "vi"], "ok": "Lưu nhật ký ra file"}
+{"fn": "translate", "args": ["empty_filter", "vi"], "ok": "Không có caption khớp bộ lọc hiện tại."}
+{"fn": "translate", "args": ["yes", "vi"], "ok": "Có"}
+{"fn": "translate", "args": ["no", "vi"], "ok": "Không"}
+{"fn": "translate", "args": ["empty", "vi"], "ok": "Rỗng"}
+{"fn": "translate", "args": ["has_tts", "vi"], "ok": "Đã có TTS"}
+{"fn": "translate", "args": ["error", "vi"], "ok": "Lỗi"}
+{"fn": "translate", "args": ["settings", "vi"], "ok": "Cài đặt"}
+{"fn": "translate", "args": ["settings_description", "vi"], "ok": "Tùy chỉnh giao diện, đường dẫn, giọng đọc và hiệu năng TTS."}
+{"fn": "translate", "args": ["appearance", "vi"], "ok": "Giao diện"}
+{"fn": "translate", "args": ["language", "vi"], "ok": "Ngôn ngữ"}
+{"fn": "translate", "args": ["theme", "vi"], "ok": "Chủ đề"}
+{"fn": "translate", "args": ["theme_auto", "vi"], "ok": "Theo Windows"}
+{"fn": "translate", "args": ["theme_light", "vi"], "ok": "Sáng"}
+{"fn": "translate", "args": ["theme_dark", "vi"], "ok": "Tối"}
+{"fn": "translate", "args": ["restart_language", "vi"], "ok": "Ngôn ngữ mới sẽ áp dụng sau khi mở lại ứng dụng."}
+{"fn": "translate", "args": ["save_settings", "vi"], "ok": "Lưu cài đặt"}
+{"fn": "translate", "args": ["cancel", "vi"], "ok": "Hủy"}
+{"fn": "translate", "args": ["paths", "vi"], "ok": "Đường dẫn"}
+{"fn": "translate", "args": ["voices", "vi"], "ok": "Giọng đọc"}
+{"fn": "translate", "args": ["performance", "vi"], "ok": "Hiệu năng"}
+{"fn": "translate", "args": ["choose", "vi"], "ok": "Chọn"}
+{"fn": "translate", "args": ["choose_folder", "vi"], "ok": "Chọn thư mục"}
+{"fn": "translate", "args": ["choose_file", "vi"], "ok": "Chọn tệp"}
+{"fn": "translate", "args": ["reload_list", "vi"], "ok": "Tải lại danh sách"}
+{"fn": "translate", "args": ["voice_catalog_url", "vi"], "ok": "URL danh mục giọng"}
+{"fn": "translate", "args": ["captions_per_batch", "vi"], "ok": "Caption mỗi lô"}
+{"fn": "translate", "args": ["parallel_batches", "vi"], "ok": "Số lô song song"}
+{"fn": "translate", "args": ["audio_workers", "vi"], "ok": "Luồng tải audio"}
+{"fn": "translate", "args": ["poll_interval", "vi"], "ok": "Chu kỳ kiểm tra"}
+{"fn": "translate", "args": ["backup_count", "vi"], "ok": "Số bản sao lưu"}
+{"fn": "translate", "args": ["seconds_suffix", "vi"], "ok": " giây"}
+{"fn": "translate", "args": ["window_title", "vi"], "ok": "CapDraft TTS — Tạo TTS cho project CapCut"}
+{"fn": "translate", "args": ["capcut_project", "vi"], "ok": "Project CapCut"}
+{"fn": "translate", "args": ["choose_project", "vi"], "ok": "Chọn project"}
+{"fn": "translate", "args": ["project_placeholder", "vi"], "ok": "Chọn thư mục project hoặc draft_content.json…"}
+{"fn": "translate", "args": ["reload_project", "vi"], "ok": "Tải lại project"}
+{"fn": "translate", "args": ["export_srt", "vi"], "ok": "Xuất SRT"}
+{"fn": "translate", "args": ["split_project", "vi"], "ok": "Tách 2 phần"}
+{"fn": "translate", "args": ["merge_videos", "vi"], "ok": "Ghép video"}
+{"fn": "translate", "args": ["no_project", "vi"], "ok": "Chưa chọn project"}
+{"fn": "translate", "args": ["voice_settings", "vi"], "ok": "Cài đặt giọng đọc"}
+{"fn": "translate", "args": ["all", "vi"], "ok": "Tất cả"}
+{"fn": "translate", "args": ["search_voice", "vi"], "ok": "Tìm giọng…"}
+{"fn": "translate", "args": ["language_label", "vi"], "ok": "Ngôn ngữ"}
+{"fn": "translate", "args": ["voice_label", "vi"], "ok": "Giọng đọc"}
+{"fn": "translate", "args": ["voice_speed", "vi"], "ok": "Tốc độ giọng đọc"}
+{"fn": "translate", "args": ["pitch", "vi"], "ok": "Cao độ"}
+{"fn": "translate", "args": ["existing_tts", "vi"], "ok": "TTS đã tồn tại"}
+{"fn": "translate", "args": ["replace_tts", "vi"], "ok": "Thay thế TTS cũ"}
+{"fn": "translate", "args": ["skip_existing_tts", "vi"], "ok": "Bỏ qua caption đã có TTS"}
+{"fn": "translate", "args": ["advanced_options", "vi"], "ok": "Tùy chọn nâng cao"}
+{"fn": "translate", "args": ["use_cache", "vi"], "ok": "Dùng cache TTS"}
+{"fn": "translate", "args": ["align_tts", "vi"], "ok": "Chống lệch đầu TTS (native CapCut)"}
+{"fn": "translate", "args": ["trim_start", "vi"], "ok": "Cắt đầu"}
+{"fn": "translate", "args": ["fade_in", "vi"], "ok": "Fade-in"}
+{"fn": "translate", "args": ["search_caption", "vi"], "ok": "Tìm trong nội dung caption…"}
+{"fn": "translate", "args": ["select_all", "vi"], "ok": "Chọn tất cả"}
+{"fn": "translate", "args": ["deselect_all", "vi"], "ok": "Bỏ chọn"}
+{"fn": "translate", "args": ["hide_empty", "vi"], "ok": "Ẩn dòng rỗng"}
+{"fn": "translate", "args": ["without_tts", "vi"], "ok": "Chưa có TTS"}
+{"fn": "translate", "args": ["only_errors", "vi"], "ok": "Chỉ lỗi"}
+{"fn": "translate", "args": ["selection", "vi"], "ok": "Đã chọn {selected}/{total} · Hiển thị {visible}"}
+{"fn": "translate", "args": ["table_start", "vi"], "ok": "Bắt đầu"}
+{"fn": "translate", "args": ["table_end", "vi"], "ok": "Kết thúc"}
+{"fn": "translate", "args": ["table_content", "vi"], "ok": "Nội dung"}
+{"fn": "translate", "args": ["table_has_tts", "vi"], "ok": "Đã có TTS"}
+{"fn": "translate", "args": ["table_status", "vi"], "ok": "Trạng thái"}
+{"fn": "translate", "args": ["table_duration", "vi"], "ok": "Thời lượng"}
+{"fn": "translate", "args": ["table_error", "vi"], "ok": "Lỗi"}
+{"fn": "translate", "args": ["ready", "vi"], "ok": "Sẵn sàng"}
+{"fn": "translate", "args": ["generating", "vi"], "ok": "Đang tạo…"}
+{"fn": "translate", "args": ["cancelling", "vi"], "ok": "Đang hủy…"}
+{"fn": "translate", "args": ["generate_attach", "vi"], "ok": "Tạo và gắn TTS"}
+{"fn": "translate", "args": ["app_settings", "vi"], "ok": "Cài đặt ứng dụng"}
+{"fn": "translate", "args": ["clear_log", "vi"], "ok": "Xóa nhật ký"}
+{"fn": "translate", "args": ["copy_log", "vi"], "ok": "Sao chép nhật ký"}
+{"fn": "translate", "args": ["save_log", "vi"], "ok": "Lưu nhật ký ra file"}
+{"fn": "translate", "args": ["empty_filter", "vi"], "ok": "Không có caption khớp bộ lọc hiện tại."}
+{"fn": "translate", "args": ["yes", "vi"], "ok": "Có"}
+{"fn": "translate", "args": ["no", "vi"], "ok": "Không"}
+{"fn": "translate", "args": ["empty", "vi"], "ok": "Rỗng"}
+{"fn": "translate", "args": ["has_tts", "vi"], "ok": "Đã có TTS"}
+{"fn": "translate", "args": ["error", "vi"], "ok": "Lỗi"}
+{"fn": "translate", "args": ["missing_key", "vi"], "ok": "missing_key"}
+{"fn": "translate", "args": ["selection", "vi", {"selected": 3, "total": 10, "visible": 7}], "ok": "Đã chọn 3/10 · Hiển thị 7"}
+{"fn": "translate", "args": ["settings", "en"], "ok": "Settings"}
+{"fn": "translate", "args": ["settings_description", "en"], "ok": "Customize appearance, paths, voices, and TTS performance."}
+{"fn": "translate", "args": ["appearance", "en"], "ok": "Appearance"}
+{"fn": "translate", "args": ["language", "en"], "ok": "Language"}
+{"fn": "translate", "args": ["theme", "en"], "ok": "Theme"}
+{"fn": "translate", "args": ["theme_auto", "en"], "ok": "Use Windows setting"}
+{"fn": "translate", "args": ["theme_light", "en"], "ok": "Light"}
+{"fn": "translate", "args": ["theme_dark", "en"], "ok": "Dark"}
+{"fn": "translate", "args": ["restart_language", "en"], "ok": "The new language will apply after restarting the app."}
+{"fn": "translate", "args": ["save_settings", "en"], "ok": "Save settings"}
+{"fn": "translate", "args": ["cancel", "en"], "ok": "Cancel"}
+{"fn": "translate", "args": ["paths", "en"], "ok": "Paths"}
+{"fn": "translate", "args": ["voices", "en"], "ok": "Voices"}
+{"fn": "translate", "args": ["performance", "en"], "ok": "Performance"}
+{"fn": "translate", "args": ["choose", "en"], "ok": "Browse"}
+{"fn": "translate", "args": ["choose_folder", "en"], "ok": "Choose folder"}
+{"fn": "translate", "args": ["choose_file", "en"], "ok": "Choose file"}
+{"fn": "translate", "args": ["reload_list", "en"], "ok": "Reload list"}
+{"fn": "translate", "args": ["voice_catalog_url", "en"], "ok": "Voice catalog URL"}
+{"fn": "translate", "args": ["captions_per_batch", "en"], "ok": "Captions per batch"}
+{"fn": "translate", "args": ["parallel_batches", "en"], "ok": "Parallel batches"}
+{"fn": "translate", "args": ["audio_workers", "en"], "ok": "Audio download workers"}
+{"fn": "translate", "args": ["poll_interval", "en"], "ok": "Polling interval"}
+{"fn": "translate", "args": ["backup_count", "en"], "ok": "Backups to keep"}
+{"fn": "translate", "args": ["seconds_suffix", "en"], "ok": " seconds"}
+{"fn": "translate", "args": ["window_title", "en"], "ok": "CapDraft TTS — TTS for CapCut projects"}
+{"fn": "translate", "args": ["capcut_project", "en"], "ok": "CapCut project"}
+{"fn": "translate", "args": ["choose_project", "en"], "ok": "Choose project"}
+{"fn": "translate", "args": ["project_placeholder", "en"], "ok": "Choose a project folder or draft_content.json…"}
+{"fn": "translate", "args": ["reload_project", "en"], "ok": "Reload project"}
+{"fn": "translate", "args": ["export_srt", "en"], "ok": "Export SRT"}
+{"fn": "translate", "args": ["split_project", "en"], "ok": "Split in 2"}
+{"fn": "translate", "args": ["merge_videos", "en"], "ok": "Merge videos"}
+{"fn": "translate", "args": ["no_project", "en"], "ok": "No project selected"}
+{"fn": "translate", "args": ["voice_settings", "en"], "ok": "Voice settings"}
+{"fn": "translate", "args": ["all", "en"], "ok": "All"}
+{"fn": "translate", "args": ["search_voice", "en"], "ok": "Search voices…"}
+{"fn": "translate", "args": ["language_label", "en"], "ok": "Language"}
+{"fn": "translate", "args": ["voice_label", "en"], "ok": "Voice"}
+{"fn": "translate", "args": ["voice_speed", "en"], "ok": "Voice speed"}
+{"fn": "translate", "args": ["pitch", "en"], "ok": "Pitch"}
+{"fn": "translate", "args": ["existing_tts", "en"], "ok": "Existing TTS"}
+{"fn": "translate", "args": ["replace_tts", "en"], "ok": "Replace existing TTS"}
+{"fn": "translate", "args": ["skip_existing_tts", "en"], "ok": "Skip captions with TTS"}
+{"fn": "translate", "args": ["advanced_options", "en"], "ok": "Advanced options"}
+{"fn": "translate", "args": ["use_cache", "en"], "ok": "Use TTS cache"}
+{"fn": "translate", "args": ["align_tts", "en"], "ok": "Prevent TTS head offset (native CapCut)"}
+{"fn": "translate", "args": ["trim_start", "en"], "ok": "Head trim"}
+{"fn": "translate", "args": ["fade_in", "en"], "ok": "Fade-in"}
+{"fn": "translate", "args": ["search_caption", "en"], "ok": "Search caption text…"}
+{"fn": "translate", "args": ["select_all", "en"], "ok": "Select all"}
+{"fn": "translate", "args": ["deselect_all", "en"], "ok": "Deselect all"}
+{"fn": "translate", "args": ["hide_empty", "en"], "ok": "Hide empty"}
+{"fn": "translate", "args": ["without_tts", "en"], "ok": "Without TTS"}
+{"fn": "translate", "args": ["only_errors", "en"], "ok": "Errors only"}
+{"fn": "translate", "args": ["selection", "en"], "ok": "Selected {selected}/{total} · Showing {visible}"}
+{"fn": "translate", "args": ["table_start", "en"], "ok": "Start"}
+{"fn": "translate", "args": ["table_end", "en"], "ok": "End"}
+{"fn": "translate", "args": ["table_content", "en"], "ok": "Content"}
+{"fn": "translate", "args": ["table_has_tts", "en"], "ok": "Has TTS"}
+{"fn": "translate", "args": ["table_status", "en"], "ok": "Status"}
+{"fn": "translate", "args": ["table_duration", "en"], "ok": "Duration"}
+{"fn": "translate", "args": ["table_error", "en"], "ok": "Error"}
+{"fn": "translate", "args": ["ready", "en"], "ok": "Ready"}
+{"fn": "translate", "args": ["generating", "en"], "ok": "Generating…"}
+{"fn": "translate", "args": ["cancelling", "en"], "ok": "Cancelling…"}
+{"fn": "translate", "args": ["generate_attach", "en"], "ok": "Generate and attach TTS"}
+{"fn": "translate", "args": ["app_settings", "en"], "ok": "App settings"}
+{"fn": "translate", "args": ["clear_log", "en"], "ok": "Clear log"}
+{"fn": "translate", "args": ["copy_log", "en"], "ok": "Copy log"}
+{"fn": "translate", "args": ["save_log", "en"], "ok": "Save log to file"}
+{"fn": "translate", "args": ["empty_filter", "en"], "ok": "No captions match the current filters."}
+{"fn": "translate", "args": ["yes", "en"], "ok": "Yes"}
+{"fn": "translate", "args": ["no", "en"], "ok": "No"}
+{"fn": "translate", "args": ["empty", "en"], "ok": "Empty"}
+{"fn": "translate", "args": ["has_tts", "en"], "ok": "Has TTS"}
+{"fn": "translate", "args": ["error", "en"], "ok": "Error"}
+{"fn": "translate", "args": ["settings", "en"], "ok": "Settings"}
+{"fn": "translate", "args": ["settings_description", "en"], "ok": "Customize appearance, paths, voices, and TTS performance."}
+{"fn": "translate", "args": ["appearance", "en"], "ok": "Appearance"}
+{"fn": "translate", "args": ["language", "en"], "ok": "Language"}
+{"fn": "translate", "args": ["theme", "en"], "ok": "Theme"}
+{"fn": "translate", "args": ["theme_auto", "en"], "ok": "Use Windows setting"}
+{"fn": "translate", "args": ["theme_light", "en"], "ok": "Light"}
+{"fn": "translate", "args": ["theme_dark", "en"], "ok": "Dark"}
+{"fn": "translate", "args": ["restart_language", "en"], "ok": "The new language will apply after restarting the app."}
+{"fn": "translate", "args": ["save_settings", "en"], "ok": "Save settings"}
+{"fn": "translate", "args": ["cancel", "en"], "ok": "Cancel"}
+{"fn": "translate", "args": ["paths", "en"], "ok": "Paths"}
+{"fn": "translate", "args": ["voices", "en"], "ok": "Voices"}
+{"fn": "translate", "args": ["performance", "en"], "ok": "Performance"}
+{"fn": "translate", "args": ["choose", "en"], "ok": "Browse"}
+{"fn": "translate", "args": ["choose_folder", "en"], "ok": "Choose folder"}
+{"fn": "translate", "args": ["choose_file", "en"], "ok": "Choose file"}
+{"fn": "translate", "args": ["reload_list", "en"], "ok": "Reload list"}
+{"fn": "translate", "args": ["voice_catalog_url", "en"], "ok": "Voice catalog URL"}
+{"fn": "translate", "args": ["captions_per_batch", "en"], "ok": "Captions per batch"}
+{"fn": "translate", "args": ["parallel_batches", "en"], "ok": "Parallel batches"}
+{"fn": "translate", "args": ["audio_workers", "en"], "ok": "Audio download workers"}
+{"fn": "translate", "args": ["poll_interval", "en"], "ok": "Polling interval"}
+{"fn": "translate", "args": ["backup_count", "en"], "ok": "Backups to keep"}
+{"fn": "translate", "args": ["seconds_suffix", "en"], "ok": " seconds"}
+{"fn": "translate", "args": ["window_title", "en"], "ok": "CapDraft TTS — TTS for CapCut projects"}
+{"fn": "translate", "args": ["capcut_project", "en"], "ok": "CapCut project"}
+{"fn": "translate", "args": ["choose_project", "en"], "ok": "Choose project"}
+{"fn": "translate", "args": ["project_placeholder", "en"], "ok": "Choose a project folder or draft_content.json…"}
+{"fn": "translate", "args": ["reload_project", "en"], "ok": "Reload project"}
+{"fn": "translate", "args": ["export_srt", "en"], "ok": "Export SRT"}
+{"fn": "translate", "args": ["split_project", "en"], "ok": "Split in 2"}
+{"fn": "translate", "args": ["merge_videos", "en"], "ok": "Merge videos"}
+{"fn": "translate", "args": ["no_project", "en"], "ok": "No project selected"}
+{"fn": "translate", "args": ["voice_settings", "en"], "ok": "Voice settings"}
+{"fn": "translate", "args": ["all", "en"], "ok": "All"}
+{"fn": "translate", "args": ["search_voice", "en"], "ok": "Search voices…"}
+{"fn": "translate", "args": ["language_label", "en"], "ok": "Language"}
+{"fn": "translate", "args": ["voice_label", "en"], "ok": "Voice"}
+{"fn": "translate", "args": ["voice_speed", "en"], "ok": "Voice speed"}
+{"fn": "translate", "args": ["pitch", "en"], "ok": "Pitch"}
+{"fn": "translate", "args": ["existing_tts", "en"], "ok": "Existing TTS"}
+{"fn": "translate", "args": ["replace_tts", "en"], "ok": "Replace existing TTS"}
+{"fn": "translate", "args": ["skip_existing_tts", "en"], "ok": "Skip captions with TTS"}
+{"fn": "translate", "args": ["advanced_options", "en"], "ok": "Advanced options"}
+{"fn": "translate", "args": ["use_cache", "en"], "ok": "Use TTS cache"}
+{"fn": "translate", "args": ["align_tts", "en"], "ok": "Prevent TTS head offset (native CapCut)"}
+{"fn": "translate", "args": ["trim_start", "en"], "ok": "Head trim"}
+{"fn": "translate", "args": ["fade_in", "en"], "ok": "Fade-in"}
+{"fn": "translate", "args": ["search_caption", "en"], "ok": "Search caption text…"}
+{"fn": "translate", "args": ["select_all", "en"], "ok": "Select all"}
+{"fn": "translate", "args": ["deselect_all", "en"], "ok": "Deselect all"}
+{"fn": "translate", "args": ["hide_empty", "en"], "ok": "Hide empty"}
+{"fn": "translate", "args": ["without_tts", "en"], "ok": "Without TTS"}
+{"fn": "translate", "args": ["only_errors", "en"], "ok": "Errors only"}
+{"fn": "translate", "args": ["selection", "en"], "ok": "Selected {selected}/{total} · Showing {visible}"}
+{"fn": "translate", "args": ["table_start", "en"], "ok": "Start"}
+{"fn": "translate", "args": ["table_end", "en"], "ok": "End"}
+{"fn": "translate", "args": ["table_content", "en"], "ok": "Content"}
+{"fn": "translate", "args": ["table_has_tts", "en"], "ok": "Has TTS"}
+{"fn": "translate", "args": ["table_status", "en"], "ok": "Status"}
+{"fn": "translate", "args": ["table_duration", "en"], "ok": "Duration"}
+{"fn": "translate", "args": ["table_error", "en"], "ok": "Error"}
+{"fn": "translate", "args": ["ready", "en"], "ok": "Ready"}
+{"fn": "translate", "args": ["generating", "en"], "ok": "Generating…"}
+{"fn": "translate", "args": ["cancelling", "en"], "ok": "Cancelling…"}
+{"fn": "translate", "args": ["generate_attach", "en"], "ok": "Generate and attach TTS"}
+{"fn": "translate", "args": ["app_settings", "en"], "ok": "App settings"}
+{"fn": "translate", "args": ["clear_log", "en"], "ok": "Clear log"}
+{"fn": "translate", "args": ["copy_log", "en"], "ok": "Copy log"}
+{"fn": "translate", "args": ["save_log", "en"], "ok": "Save log to file"}
+{"fn": "translate", "args": ["empty_filter", "en"], "ok": "No captions match the current filters."}
+{"fn": "translate", "args": ["yes", "en"], "ok": "Yes"}
+{"fn": "translate", "args": ["no", "en"], "ok": "No"}
+{"fn": "translate", "args": ["empty", "en"], "ok": "Empty"}
+{"fn": "translate", "args": ["has_tts", "en"], "ok": "Has TTS"}
+{"fn": "translate", "args": ["error", "en"], "ok": "Error"}
+{"fn": "translate", "args": ["missing_key", "en"], "ok": "missing_key"}
+{"fn": "translate", "args": ["selection", "en", {"selected": 3, "total": 10, "visible": 7}], "ok": "Selected 3/10 · Showing 7"}
+{"fn": "translate", "args": ["settings", "zh"], "ok": "设置"}
+{"fn": "translate", "args": ["settings_description", "zh"], "ok": "自定义外观、路径、语音和 TTS 性能。"}
+{"fn": "translate", "args": ["appearance", "zh"], "ok": "外观"}
+{"fn": "translate", "args": ["language", "zh"], "ok": "语言"}
+{"fn": "translate", "args": ["theme", "zh"], "ok": "主题"}
+{"fn": "translate", "args": ["theme_auto", "zh"], "ok": "跟随 Windows"}
+{"fn": "translate", "args": ["theme_light", "zh"], "ok": "浅色"}
+{"fn": "translate", "args": ["theme_dark", "zh"], "ok": "深色"}
+{"fn": "translate", "args": ["restart_language", "zh"], "ok": "新语言将在重新打开应用后生效。"}
+{"fn": "translate", "args": ["save_settings", "zh"], "ok": "保存设置"}
+{"fn": "translate", "args": ["cancel", "zh"], "ok": "取消"}
+{"fn": "translate", "args": ["paths", "zh"], "ok": "路径"}
+{"fn": "translate", "args": ["voices", "zh"], "ok": "语音"}
+{"fn": "translate", "args": ["performance", "zh"], "ok": "性能"}
+{"fn": "translate", "args": ["choose", "zh"], "ok": "选择"}
+{"fn": "translate", "args": ["choose_folder", "zh"], "ok": "选择文件夹"}
+{"fn": "translate", "args": ["choose_file", "zh"], "ok": "选择文件"}
+{"fn": "translate", "args": ["reload_list", "zh"], "ok": "重新加载列表"}
+{"fn": "translate", "args": ["voice_catalog_url", "zh"], "ok": "Voice catalog URL"}
+{"fn": "translate", "args": ["captions_per_batch", "zh"], "ok": "Captions per batch"}
+{"fn": "translate", "args": ["parallel_batches", "zh"], "ok": "Parallel batches"}
+{"fn": "translate", "args": ["audio_workers", "zh"], "ok": "Audio download workers"}
+{"fn": "translate", "args": ["poll_interval", "zh"], "ok": "Polling interval"}
+{"fn": "translate", "args": ["backup_count", "zh"], "ok": "Backups to keep"}
+{"fn": "translate", "args": ["seconds_suffix", "zh"], "ok": " seconds"}
+{"fn": "translate", "args": ["window_title", "zh"], "ok": "CapDraft TTS — CapCut 项目语音"}
+{"fn": "translate", "args": ["capcut_project", "zh"], "ok": "CapCut 项目"}
+{"fn": "translate", "args": ["choose_project", "zh"], "ok": "选择项目"}
+{"fn": "translate", "args": ["project_placeholder", "zh"], "ok": "选择项目文件夹或 draft_content.json…"}
+{"fn": "translate", "args": ["reload_project", "zh"], "ok": "重新加载项目"}
+{"fn": "translate", "args": ["export_srt", "zh"], "ok": "导出 SRT"}
+{"fn": "translate", "args": ["split_project", "zh"], "ok": "拆成 2 份"}
+{"fn": "translate", "args": ["merge_videos", "zh"], "ok": "合并视频"}
+{"fn": "translate", "args": ["no_project", "zh"], "ok": "未选择项目"}
+{"fn": "translate", "args": ["voice_settings", "zh"], "ok": "语音设置"}
+{"fn": "translate", "args": ["all", "zh"], "ok": "全部"}
+{"fn": "translate", "args": ["search_voice", "zh"], "ok": "搜索语音…"}
+{"fn": "translate", "args": ["language_label", "zh"], "ok": "语言"}
+{"fn": "translate", "args": ["voice_label", "zh"], "ok": "语音"}
+{"fn": "translate", "args": ["voice_speed", "zh"], "ok": "语速"}
+{"fn": "translate", "args": ["pitch", "zh"], "ok": "音调"}
+{"fn": "translate", "args": ["existing_tts", "zh"], "ok": "已有 TTS"}
+{"fn": "translate", "args": ["replace_tts", "zh"], "ok": "替换已有 TTS"}
+{"fn": "translate", "args": ["skip_existing_tts", "zh"], "ok": "跳过已有 TTS 的字幕"}
+{"fn": "translate", "args": ["advanced_options", "zh"], "ok": "高级选项"}
+{"fn": "translate", "args": ["use_cache", "zh"], "ok": "使用 TTS 缓存"}
+{"fn": "translate", "args": ["align_tts", "zh"], "ok": "修正 TTS 开头偏移（CapCut 原生）"}
+{"fn": "translate", "args": ["trim_start", "zh"], "ok": "开头裁剪"}
+{"fn": "translate", "args": ["fade_in", "zh"], "ok": "Fade-in"}
+{"fn": "translate", "args": ["search_caption", "zh"], "ok": "搜索字幕内容…"}
+{"fn": "translate", "args": ["select_all", "zh"], "ok": "全选"}
+{"fn": "translate", "args": ["deselect_all", "zh"], "ok": "取消全选"}
+{"fn": "translate", "args": ["hide_empty", "zh"], "ok": "隐藏空字幕"}
+{"fn": "translate", "args": ["without_tts", "zh"], "ok": "无 TTS"}
+{"fn": "translate", "args": ["only_errors", "zh"], "ok": "仅错误"}
+{"fn": "translate", "args": ["selection", "zh"], "ok": "已选 {selected}/{total} · 显示 {visible}"}
+{"fn": "translate", "args": ["table_start", "zh"], "ok": "开始"}
+{"fn": "translate", "args": ["table_end", "zh"], "ok": "结束"}
+{"fn": "translate", "args": ["table_content", "zh"], "ok": "内容"}
+{"fn": "translate", "args": ["table_has_tts", "zh"], "ok": "已有 TTS"}
+{"fn": "translate", "args": ["table_status", "zh"], "ok": "状态"}
+{"fn": "translate", "args": ["table_duration", "zh"], "ok": "时长"}
+{"fn": "translate", "args": ["table_error", "zh"], "ok": "错误"}
+{"fn": "translate", "args": ["ready", "zh"], "ok": "就绪"}
+{"fn": "translate", "args": ["generating", "zh"], "ok": "正在生成…"}
+{"fn": "translate", "args": ["cancelling", "zh"], "ok": "正在取消…"}
+{"fn": "translate", "args": ["generate_attach", "zh"], "ok": "生成并附加 TTS"}
+{"fn": "translate", "args": ["app_settings", "zh"], "ok": "应用设置"}
+{"fn": "translate", "args": ["clear_log", "zh"], "ok": "清空日志"}
+{"fn": "translate", "args": ["copy_log", "zh"], "ok": "复制日志"}
+{"fn": "translate", "args": ["save_log", "zh"], "ok": "保存日志"}
+{"fn": "translate", "args": ["empty_filter", "zh"], "ok": "没有符合当前筛选条件的字幕。"}
+{"fn": "translate", "args": ["yes", "zh"], "ok": "是"}
+{"fn": "translate", "args": ["no", "zh"], "ok": "否"}
+{"fn": "translate", "args": ["empty", "zh"], "ok": "空"}
+{"fn": "translate", "args": ["has_tts", "zh"], "ok": "已有 TTS"}
+{"fn": "translate", "args": ["error", "zh"], "ok": "错误"}
+{"fn": "translate", "args": ["settings", "zh"], "ok": "设置"}
+{"fn": "translate", "args": ["settings_description", "zh"], "ok": "自定义外观、路径、语音和 TTS 性能。"}
+{"fn": "translate", "args": ["appearance", "zh"], "ok": "外观"}
+{"fn": "translate", "args": ["language", "zh"], "ok": "语言"}
+{"fn": "translate", "args": ["theme", "zh"], "ok": "主题"}
+{"fn": "translate", "args": ["theme_auto", "zh"], "ok": "跟随 Windows"}
+{"fn": "translate", "args": ["theme_light", "zh"], "ok": "浅色"}
+{"fn": "translate", "args": ["theme_dark", "zh"], "ok": "深色"}
+{"fn": "translate", "args": ["restart_language", "zh"], "ok": "新语言将在重新打开应用后生效。"}
+{"fn": "translate", "args": ["save_settings", "zh"], "ok": "保存设置"}
+{"fn": "translate", "args": ["cancel", "zh"], "ok": "取消"}
+{"fn": "translate", "args": ["paths", "zh"], "ok": "路径"}
+{"fn": "translate", "args": ["voices", "zh"], "ok": "语音"}
+{"fn": "translate", "args": ["performance", "zh"], "ok": "性能"}
+{"fn": "translate", "args": ["choose", "zh"], "ok": "选择"}
+{"fn": "translate", "args": ["choose_folder", "zh"], "ok": "选择文件夹"}
+{"fn": "translate", "args": ["choose_file", "zh"], "ok": "选择文件"}
+{"fn": "translate", "args": ["reload_list", "zh"], "ok": "重新加载列表"}
+{"fn": "translate", "args": ["voice_catalog_url", "zh"], "ok": "Voice catalog URL"}
+{"fn": "translate", "args": ["captions_per_batch", "zh"], "ok": "Captions per batch"}
+{"fn": "translate", "args": ["parallel_batches", "zh"], "ok": "Parallel batches"}
+{"fn": "translate", "args": ["audio_workers", "zh"], "ok": "Audio download workers"}
+{"fn": "translate", "args": ["poll_interval", "zh"], "ok": "Polling interval"}
+{"fn": "translate", "args": ["backup_count", "zh"], "ok": "Backups to keep"}
+{"fn": "translate", "args": ["seconds_suffix", "zh"], "ok": " seconds"}
+{"fn": "translate", "args": ["window_title", "zh"], "ok": "CapDraft TTS — CapCut 项目语音"}
+{"fn": "translate", "args": ["capcut_project", "zh"], "ok": "CapCut 项目"}
+{"fn": "translate", "args": ["choose_project", "zh"], "ok": "选择项目"}
+{"fn": "translate", "args": ["project_placeholder", "zh"], "ok": "选择项目文件夹或 draft_content.json…"}
+{"fn": "translate", "args": ["reload_project", "zh"], "ok": "重新加载项目"}
+{"fn": "translate", "args": ["export_srt", "zh"], "ok": "导出 SRT"}
+{"fn": "translate", "args": ["split_project", "zh"], "ok": "拆成 2 份"}
+{"fn": "translate", "args": ["merge_videos", "zh"], "ok": "合并视频"}
+{"fn": "translate", "args": ["no_project", "zh"], "ok": "未选择项目"}
+{"fn": "translate", "args": ["voice_settings", "zh"], "ok": "语音设置"}
+{"fn": "translate", "args": ["all", "zh"], "ok": "全部"}
+{"fn": "translate", "args": ["search_voice", "zh"], "ok": "搜索语音…"}
+{"fn": "translate", "args": ["language_label", "zh"], "ok": "语言"}
+{"fn": "translate", "args": ["voice_label", "zh"], "ok": "语音"}
+{"fn": "translate", "args": ["voice_speed", "zh"], "ok": "语速"}
+{"fn": "translate", "args": ["pitch", "zh"], "ok": "音调"}
+{"fn": "translate", "args": ["existing_tts", "zh"], "ok": "已有 TTS"}
+{"fn": "translate", "args": ["replace_tts", "zh"], "ok": "替换已有 TTS"}
+{"fn": "translate", "args": ["skip_existing_tts", "zh"], "ok": "跳过已有 TTS 的字幕"}
+{"fn": "translate", "args": ["advanced_options", "zh"], "ok": "高级选项"}
+{"fn": "translate", "args": ["use_cache", "zh"], "ok": "使用 TTS 缓存"}
+{"fn": "translate", "args": ["align_tts", "zh"], "ok": "修正 TTS 开头偏移（CapCut 原生）"}
+{"fn": "translate", "args": ["trim_start", "zh"], "ok": "开头裁剪"}
+{"fn": "translate", "args": ["fade_in", "zh"], "ok": "Fade-in"}
+{"fn": "translate", "args": ["search_caption", "zh"], "ok": "搜索字幕内容…"}
+{"fn": "translate", "args": ["select_all", "zh"], "ok": "全选"}
+{"fn": "translate", "args": ["deselect_all", "zh"], "ok": "取消全选"}
+{"fn": "translate", "args": ["hide_empty", "zh"], "ok": "隐藏空字幕"}
+{"fn": "translate", "args": ["without_tts", "zh"], "ok": "无 TTS"}
+{"fn": "translate", "args": ["only_errors", "zh"], "ok": "仅错误"}
+{"fn": "translate", "args": ["selection", "zh"], "ok": "已选 {selected}/{total} · 显示 {visible}"}
+{"fn": "translate", "args": ["table_start", "zh"], "ok": "开始"}
+{"fn": "translate", "args": ["table_end", "zh"], "ok": "结束"}
+{"fn": "translate", "args": ["table_content", "zh"], "ok": "内容"}
+{"fn": "translate", "args": ["table_has_tts", "zh"], "ok": "已有 TTS"}
+{"fn": "translate", "args": ["table_status", "zh"], "ok": "状态"}
+{"fn": "translate", "args": ["table_duration", "zh"], "ok": "时长"}
+{"fn": "translate", "args": ["table_error", "zh"], "ok": "错误"}
+{"fn": "translate", "args": ["ready", "zh"], "ok": "就绪"}
+{"fn": "translate", "args": ["generating", "zh"], "ok": "正在生成…"}
+{"fn": "translate", "args": ["cancelling", "zh"], "ok": "正在取消…"}
+{"fn": "translate", "args": ["generate_attach", "zh"], "ok": "生成并附加 TTS"}
+{"fn": "translate", "args": ["app_settings", "zh"], "ok": "应用设置"}
+{"fn": "translate", "args": ["clear_log", "zh"], "ok": "清空日志"}
+{"fn": "translate", "args": ["copy_log", "zh"], "ok": "复制日志"}
+{"fn": "translate", "args": ["save_log", "zh"], "ok": "保存日志"}
+{"fn": "translate", "args": ["empty_filter", "zh"], "ok": "没有符合当前筛选条件的字幕。"}
+{"fn": "translate", "args": ["yes", "zh"], "ok": "是"}
+{"fn": "translate", "args": ["no", "zh"], "ok": "否"}
+{"fn": "translate", "args": ["empty", "zh"], "ok": "空"}
+{"fn": "translate", "args": ["has_tts", "zh"], "ok": "已有 TTS"}
+{"fn": "translate", "args": ["error", "zh"], "ok": "错误"}
+{"fn": "translate", "args": ["missing_key", "zh"], "ok": "missing_key"}
+{"fn": "translate", "args": ["selection", "zh", {"selected": 3, "total": 10, "visible": 7}], "ok": "已选 3/10 · 显示 7"}
+{"fn": "translate", "args": ["settings", "ja"], "ok": "設定"}
+{"fn": "translate", "args": ["settings_description", "ja"], "ok": "外観、パス、音声、TTS 性能を設定します。"}
+{"fn": "translate", "args": ["appearance", "ja"], "ok": "外観"}
+{"fn": "translate", "args": ["language", "ja"], "ok": "言語"}
+{"fn": "translate", "args": ["theme", "ja"], "ok": "テーマ"}
+{"fn": "translate", "args": ["theme_auto", "ja"], "ok": "Windows に合わせる"}
+{"fn": "translate", "args": ["theme_light", "ja"], "ok": "ライト"}
+{"fn": "translate", "args": ["theme_dark", "ja"], "ok": "ダーク"}
+{"fn": "translate", "args": ["restart_language", "ja"], "ok": "新しい言語はアプリの再起動後に適用されます。"}
+{"fn": "translate", "args": ["save_settings", "ja"], "ok": "設定を保存"}
+{"fn": "translate", "args": ["cancel", "ja"], "ok": "キャンセル"}
+{"fn": "translate", "args": ["paths", "ja"], "ok": "パス"}
+{"fn": "translate", "args": ["voices", "ja"], "ok": "音声"}
+{"fn": "translate", "args": ["performance", "ja"], "ok": "性能"}
+{"fn": "translate", "args": ["choose", "ja"], "ok": "選択"}
+{"fn": "translate", "args": ["choose_folder", "ja"], "ok": "フォルダーを選択"}
+{"fn": "translate", "args": ["choose_file", "ja"], "ok": "ファイルを選択"}
+{"fn": "translate", "args": ["reload_list", "ja"], "ok": "リストを再読込"}
+{"fn": "translate", "args": ["voice_catalog_url", "ja"], "ok": "Voice catalog URL"}
+{"fn": "translate", "args": ["captions_per_batch", "ja"], "ok": "Captions per batch"}
+{"fn": "translate", "args": ["parallel_batches", "ja"], "ok": "Parallel batches"}
+{"fn": "translate", "args": ["audio_workers", "ja"], "ok": "Audio download workers"}
+{"fn": "translate", "args": ["poll_interval", "ja"], "ok": "Polling interval"}
+{"fn": "translate", "args": ["backup_count", "ja"], "ok": "Backups to keep"}
+{"fn": "translate", "args": ["seconds_suffix", "ja"], "ok": " seconds"}
+{"fn": "translate", "args": ["window_title", "ja"], "ok": "CapDraft TTS — CapCut プロジェクト用 TTS"}
+{"fn": "translate", "args": ["capcut_project", "ja"], "ok": "CapCut プロジェクト"}
+{"fn": "translate", "args": ["choose_project", "ja"], "ok": "プロジェクトを選択"}
+{"fn": "translate", "args": ["project_placeholder", "ja"], "ok": "プロジェクトフォルダーまたは draft_content.json を選択…"}
+{"fn": "translate", "args": ["reload_project", "ja"], "ok": "プロジェクトを再読込"}
+{"fn": "translate", "args": ["export_srt", "ja"], "ok": "SRT を出力"}
+{"fn": "translate", "args": ["split_project", "ja"], "ok": "2つに分割"}
+{"fn": "translate", "args": ["merge_videos", "ja"], "ok": "動画を結合"}
+{"fn": "translate", "args": ["no_project", "ja"], "ok": "プロジェクト未選択"}
+{"fn": "translate", "args": ["voice_settings", "ja"], "ok": "音声設定"}
+{"fn": "translate", "args": ["all", "ja"], "ok": "すべて"}
+{"fn": "translate", "args": ["search_voice", "ja"], "ok": "音声を検索…"}
+{"fn": "translate", "args": ["language_label", "ja"], "ok": "言語"}
+{"fn": "translate", "args": ["voice_label", "ja"], "ok": "音声"}
+{"fn": "translate", "args": ["voice_speed", "ja"], "ok": "音声速度"}
+{"fn": "translate", "args": ["pitch", "ja"], "ok": "ピッチ"}
+{"fn": "translate", "args": ["existing_tts", "ja"], "ok": "既存の TTS"}
+{"fn": "translate", "args": ["replace_tts", "ja"], "ok": "既存の TTS を置換"}
+{"fn": "translate", "args": ["skip_existing_tts", "ja"], "ok": "TTS 付き字幕をスキップ"}
+{"fn": "translate", "args": ["advanced_options", "ja"], "ok": "詳細オプション"}
+{"fn": "translate", "args": ["use_cache", "ja"], "ok": "TTS キャッシュを使用"}
+{"fn": "translate", "args": ["align_tts", "ja"], "ok": "TTS 先頭のずれを補正（CapCut ネイティブ）"}
+{"fn": "translate", "args": ["trim_start", "ja"], "ok": "先頭トリム"}
+{"fn": "translate", "args": ["fade_in", "ja"], "ok": "Fade-in"}
+{"fn": "translate", "args": ["search_caption", "ja"], "ok": "字幕内容を検索…"}
+{"fn": "translate", "args": ["select_all", "ja"], "ok": "すべて選択"}
+{"fn": "translate", "args": ["deselect_all", "ja"], "ok": "選択解除"}
+{"fn": "translate", "args": ["hide_empty", "ja"], "ok": "空行を非表示"}
+{"fn": "translate", "args": ["without_tts", "ja"], "ok": "TTS なし"}
+{"fn": "translate", "args": ["only_errors", "ja"], "ok": "エラーのみ"}
+{"fn": "translate", "args": ["selection", "ja"], "ok": "選択 {selected}/{total} · 表示 {visible}"}
+{"fn": "translate", "args": ["table_start", "ja"], "ok": "開始"}
+{"fn": "translate", "args": ["table_end", "ja"], "ok": "終了"}
+{"fn": "translate", "args": ["table_content", "ja"], "ok": "内容"}
+{"fn": "translate", "args": ["table_has_tts", "ja"], "ok": "TTS あり"}
+{"fn": "translate", "args": ["table_status", "ja"], "ok": "状態"}
+{"fn": "translate", "args": ["table_duration", "ja"], "ok": "長さ"}
+{"fn": "translate", "args": ["table_error", "ja"], "ok": "エラー"}
+{"fn": "translate", "args": ["ready", "ja"], "ok": "準備完了"}
+{"fn": "translate", "args": ["generating", "ja"], "ok": "生成中…"}
+{"fn": "translate", "args": ["cancelling", "ja"], "ok": "キャンセル中…"}
+{"fn": "translate", "args": ["generate_attach", "ja"], "ok": "TTS を生成して追加"}
+{"fn": "translate", "args": ["app_settings", "ja"], "ok": "アプリ設定"}
+{"fn": "translate", "args": ["clear_log", "ja"], "ok": "ログを消去"}
+{"fn": "translate", "args": ["copy_log", "ja"], "ok": "ログをコピー"}
+{"fn": "translate", "args": ["save_log", "ja"], "ok": "ログを保存"}
+{"fn": "translate", "args": ["empty_filter", "ja"], "ok": "現在のフィルターに一致する字幕はありません。"}
+{"fn": "translate", "args": ["yes", "ja"], "ok": "はい"}
+{"fn": "translate", "args": ["no", "ja"], "ok": "いいえ"}
+{"fn": "translate", "args": ["empty", "ja"], "ok": "空"}
+{"fn": "translate", "args": ["has_tts", "ja"], "ok": "TTS あり"}
+{"fn": "translate", "args": ["error", "ja"], "ok": "エラー"}
+{"fn": "translate", "args": ["settings", "ja"], "ok": "設定"}
+{"fn": "translate", "args": ["settings_description", "ja"], "ok": "外観、パス、音声、TTS 性能を設定します。"}
+{"fn": "translate", "args": ["appearance", "ja"], "ok": "外観"}
+{"fn": "translate", "args": ["language", "ja"], "ok": "言語"}
+{"fn": "translate", "args": ["theme", "ja"], "ok": "テーマ"}
+{"fn": "translate", "args": ["theme_auto", "ja"], "ok": "Windows に合わせる"}
+{"fn": "translate", "args": ["theme_light", "ja"], "ok": "ライト"}
+{"fn": "translate", "args": ["theme_dark", "ja"], "ok": "ダーク"}
+{"fn": "translate", "args": ["restart_language", "ja"], "ok": "新しい言語はアプリの再起動後に適用されます。"}
+{"fn": "translate", "args": ["save_settings", "ja"], "ok": "設定を保存"}
+{"fn": "translate", "args": ["cancel", "ja"], "ok": "キャンセル"}
+{"fn": "translate", "args": ["paths", "ja"], "ok": "パス"}
+{"fn": "translate", "args": ["voices", "ja"], "ok": "音声"}
+{"fn": "translate", "args": ["performance", "ja"], "ok": "性能"}
+{"fn": "translate", "args": ["choose", "ja"], "ok": "選択"}
+{"fn": "translate", "args": ["choose_folder", "ja"], "ok": "フォルダーを選択"}
+{"fn": "translate", "args": ["choose_file", "ja"], "ok": "ファイルを選択"}
+{"fn": "translate", "args": ["reload_list", "ja"], "ok": "リストを再読込"}
+{"fn": "translate", "args": ["voice_catalog_url", "ja"], "ok": "Voice catalog URL"}
+{"fn": "translate", "args": ["captions_per_batch", "ja"], "ok": "Captions per batch"}
+{"fn": "translate", "args": ["parallel_batches", "ja"], "ok": "Parallel batches"}
+{"fn": "translate", "args": ["audio_workers", "ja"], "ok": "Audio download workers"}
+{"fn": "translate", "args": ["poll_interval", "ja"], "ok": "Polling interval"}
+{"fn": "translate", "args": ["backup_count", "ja"], "ok": "Backups to keep"}
+{"fn": "translate", "args": ["seconds_suffix", "ja"], "ok": " seconds"}
+{"fn": "translate", "args": ["window_title", "ja"], "ok": "CapDraft TTS — CapCut プロジェクト用 TTS"}
+{"fn": "translate", "args": ["capcut_project", "ja"], "ok": "CapCut プロジェクト"}
+{"fn": "translate", "args": ["choose_project", "ja"], "ok": "プロジェクトを選択"}
+{"fn": "translate", "args": ["project_placeholder", "ja"], "ok": "プロジェクトフォルダーまたは draft_content.json を選択…"}
+{"fn": "translate", "args": ["reload_project", "ja"], "ok": "プロジェクトを再読込"}
+{"fn": "translate", "args": ["export_srt", "ja"], "ok": "SRT を出力"}
+{"fn": "translate", "args": ["split_project", "ja"], "ok": "2つに分割"}
+{"fn": "translate", "args": ["merge_videos", "ja"], "ok": "動画を結合"}
+{"fn": "translate", "args": ["no_project", "ja"], "ok": "プロジェクト未選択"}
+{"fn": "translate", "args": ["voice_settings", "ja"], "ok": "音声設定"}
+{"fn": "translate", "args": ["all", "ja"], "ok": "すべて"}
+{"fn": "translate", "args": ["search_voice", "ja"], "ok": "音声を検索…"}
+{"fn": "translate", "args": ["language_label", "ja"], "ok": "言語"}
+{"fn": "translate", "args": ["voice_label", "ja"], "ok": "音声"}
+{"fn": "translate", "args": ["voice_speed", "ja"], "ok": "音声速度"}
+{"fn": "translate", "args": ["pitch", "ja"], "ok": "ピッチ"}
+{"fn": "translate", "args": ["existing_tts", "ja"], "ok": "既存の TTS"}
+{"fn": "translate", "args": ["replace_tts", "ja"], "ok": "既存の TTS を置換"}
+{"fn": "translate", "args": ["skip_existing_tts", "ja"], "ok": "TTS 付き字幕をスキップ"}
+{"fn": "translate", "args": ["advanced_options", "ja"], "ok": "詳細オプション"}
+{"fn": "translate", "args": ["use_cache", "ja"], "ok": "TTS キャッシュを使用"}
+{"fn": "translate", "args": ["align_tts", "ja"], "ok": "TTS 先頭のずれを補正（CapCut ネイティブ）"}
+{"fn": "translate", "args": ["trim_start", "ja"], "ok": "先頭トリム"}
+{"fn": "translate", "args": ["fade_in", "ja"], "ok": "Fade-in"}
+{"fn": "translate", "args": ["search_caption", "ja"], "ok": "字幕内容を検索…"}
+{"fn": "translate", "args": ["select_all", "ja"], "ok": "すべて選択"}
+{"fn": "translate", "args": ["deselect_all", "ja"], "ok": "選択解除"}
+{"fn": "translate", "args": ["hide_empty", "ja"], "ok": "空行を非表示"}
+{"fn": "translate", "args": ["without_tts", "ja"], "ok": "TTS なし"}
+{"fn": "translate", "args": ["only_errors", "ja"], "ok": "エラーのみ"}
+{"fn": "translate", "args": ["selection", "ja"], "ok": "選択 {selected}/{total} · 表示 {visible}"}
+{"fn": "translate", "args": ["table_start", "ja"], "ok": "開始"}
+{"fn": "translate", "args": ["table_end", "ja"], "ok": "終了"}
+{"fn": "translate", "args": ["table_content", "ja"], "ok": "内容"}
+{"fn": "translate", "args": ["table_has_tts", "ja"], "ok": "TTS あり"}
+{"fn": "translate", "args": ["table_status", "ja"], "ok": "状態"}
+{"fn": "translate", "args": ["table_duration", "ja"], "ok": "長さ"}
+{"fn": "translate", "args": ["table_error", "ja"], "ok": "エラー"}
+{"fn": "translate", "args": ["ready", "ja"], "ok": "準備完了"}
+{"fn": "translate", "args": ["generating", "ja"], "ok": "生成中…"}
+{"fn": "translate", "args": ["cancelling", "ja"], "ok": "キャンセル中…"}
+{"fn": "translate", "args": ["generate_attach", "ja"], "ok": "TTS を生成して追加"}
+{"fn": "translate", "args": ["app_settings", "ja"], "ok": "アプリ設定"}
+{"fn": "translate", "args": ["clear_log", "ja"], "ok": "ログを消去"}
+{"fn": "translate", "args": ["copy_log", "ja"], "ok": "ログをコピー"}
+{"fn": "translate", "args": ["save_log", "ja"], "ok": "ログを保存"}
+{"fn": "translate", "args": ["empty_filter", "ja"], "ok": "現在のフィルターに一致する字幕はありません。"}
+{"fn": "translate", "args": ["yes", "ja"], "ok": "はい"}
+{"fn": "translate", "args": ["no", "ja"], "ok": "いいえ"}
+{"fn": "translate", "args": ["empty", "ja"], "ok": "空"}
+{"fn": "translate", "args": ["has_tts", "ja"], "ok": "TTS あり"}
+{"fn": "translate", "args": ["error", "ja"], "ok": "エラー"}
+{"fn": "translate", "args": ["missing_key", "ja"], "ok": "missing_key"}
+{"fn": "translate", "args": ["selection", "ja", {"selected": 3, "total": 10, "visible": 7}], "ok": "選択 3/10 · 表示 7"}

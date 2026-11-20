@@ -1,0 +1,12 @@
+{"fn": "load_draft", "args": [{"files": {"P/draft_content.json": "{\"tracks\": [], \"materials\": {\"texts\": []}, \"name\": \"x\"}"}}, "P"], "ok": {"draft_path": "<ROOT>/P/draft_content.json", "project_directory": "<ROOT>/P", "captions": 0}}
+{"fn": "load_draft", "args": [{"files": {"P/draft_content.json": "{\"tracks\": [], \"materials\": {\"texts\": []}, \"name\": \"x\"}"}}, "P/draft_content.json"], "ok": {"draft_path": "<ROOT>/P/draft_content.json", "project_directory": "<ROOT>/P", "captions": 0}}
+{"fn": "load_draft", "args": [{"files": {"P/Timelines/ID1/draft_content.json": "{\"tracks\": [], \"materials\": {\"texts\": []}, \"name\": \"x\"}"}}, "P"], "ok": {"draft_path": "<ROOT>/P/Timelines/ID1/draft_content.json", "project_directory": "<ROOT>/P", "captions": 0}}
+{"fn": "load_draft", "args": [{"files": {"P/Timelines/ID1/draft_content.json": "{\"tracks\": [], \"materials\": {\"texts\": []}, \"name\": \"x\"}"}}, "P/Timelines/ID1/draft_content.json"], "ok": {"draft_path": "<ROOT>/P/Timelines/ID1/draft_content.json", "project_directory": "<ROOT>/P", "captions": 0}}
+{"fn": "load_draft", "args": [{"files": {"P/other.txt": "x"}}, "P"], "err": "FileNotFoundError: draft_content.json not found under <ROOT>/P"}
+{"fn": "load_draft", "args": [{"files": {"P/other.txt": "x"}}, "P/missing.json"], "err": "FileNotFoundError: Path not found: <ROOT>/P/missing.json"}
+{"fn": "load_draft", "args": [{"files": {"P/draft_content.json": "﻿{\"tracks\": [], \"materials\": {\"texts\": []}, \"name\": \"x\"}"}}, "P"], "ok": {"draft_path": "<ROOT>/P/draft_content.json", "project_directory": "<ROOT>/P", "captions": 0}}
+{"fn": "load_draft", "args": [{"files": {"P/draft_content.json": "[1]"}}, "P"], "err": "ValueError: draft_content.json root must be an object"}
+{"fn": "load_draft", "args": [{"files": {"P/draft_content.json": "{\"tracks\": []}"}}, "P"], "err": "ValueError: draft_content.json missing required keys: tracks/materials"}
+{"fn": "load_draft", "args": [{"files": {"P/draft_content.json": "{\"tracks\": [], \"materials\": {}}"}}, "P"], "err": "ValueError: draft_content.json missing materials.texts"}
+{"fn": "load_draft", "args": [{"files": {"P/draft_content.json": "{\"tracks\": [], \"materials\": null}"}}, "P"], "err": "ValueError: draft_content.json missing materials.texts"}
+{"fn": "load_draft", "args": [{"files": {"P/draft_content.json": "{bad"}}, "P"], "err": "JSONDecodeError"}

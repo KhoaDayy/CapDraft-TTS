@@ -1,0 +1,31 @@
+[package]
+name = "capdraft-core"
+description = "CapDraft TTS core: CapCut draft reading, patching and TTS pipeline (Rust port)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dev-dependencies]
+mimalloc = { version = "0.1", default-features = false }
+
+[dependencies]
+serde_json.workspace = true
+serde.workspace = true
+compact_str.workspace = true
+ryu.workspace = true
+itoa.workspace = true
+memchr.workspace = true
+rayon.workspace = true
+sha2.workspace = true
+md-5.workspace = true
+base64.workspace = true
+num-bigint.workspace = true
+getrandom.workspace = true
+ureq.workspace = true
+chrono.workspace = true
+regex.workspace = true
+uuid.workspace = true
+
+[lints]
+workspace = true
